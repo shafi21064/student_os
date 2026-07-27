@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "175650710387",
+    "project_id": "studentos-f9c21",
+    "storage_bucket": "studentos-f9c21.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:175650710387:android:3810b58a10bb040ebe1b06",
+        "android_client_info": {
+          "package_name": "com.thetork.studentos"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "175650710387-k3pi80ngo3hleommif4111dr2jb0n051.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOV_C6ElKR4wFSn4r3DicbNCZYVtC79r0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "175650710387-k3pi80ngo3hleommif4111dr2jb0n051.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
