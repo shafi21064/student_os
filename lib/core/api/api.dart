@@ -1,7 +1,9 @@
 
 
-class AppApiEndPoints{
-   AppApiEndPoints._();
+import '../config/env_config.dart';
+
+class Api{
+   Api._();
 
    static final String baseUrl = EnvConfig.baseUrl;
 

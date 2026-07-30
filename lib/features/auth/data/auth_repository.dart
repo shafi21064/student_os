@@ -1,8 +1,10 @@
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:studentos/core/api/api.dart';
+import 'package:studentos/core/api/api_client.dart';
 import 'package:studentos/core/storage/preferences_provider.dart';
 import 'package:studentos/features/auth/domain/auth_user.dart';
 
@@ -17,6 +19,10 @@ abstract interface class AuthRepository {
   AuthSnapshot load();
   void saveUser(AuthUser? user);
   void saveUsers(List<AuthUser> users);
+  Future<ApiResponse<AuthUser>> getSocialLoginResponse({
+    required String provider,
+    required String accessToken,
+  });
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -61,7 +67,12 @@ class SharedPreferencesAuthRepository implements AuthRepository {
 
   @override
   void saveUsers(List<AuthUser> users) {
-    unawaited(_preferences.setString(_usersKey, jsonEncode(users.map((item) => item.toJson()).toList())));
+    unawaited(
+      _preferences.setString(
+        _usersKey,
+        jsonEncode(users.map((item) => item.toJson()).toList()),
+      ),
+    );
   }
 
   List<AuthUser> _decodeUsers(String? source) {
@@ -71,7 +82,11 @@ class SharedPreferencesAuthRepository implements AuthRepository {
       if (decoded is! List<Object?>) return const <AuthUser>[];
       return decoded
           .whereType<Map<Object?, Object?>>()
-          .map((item) => AuthUser.fromJson(item.map((key, value) => MapEntry(key.toString(), value))))
+          .map(
+            (item) => AuthUser.fromJson(
+              item.map((key, value) => MapEntry(key.toString(), value)),
+            ),
+          )
           .toList(growable: false);
     } catch (_) {
       return const <AuthUser>[];
@@ -83,33 +98,22 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     try {
       final decoded = jsonDecode(source);
       if (decoded is! Map<Object?, Object?>) return null;
-      return AuthUser.fromJson(decoded.map((key, value) => MapEntry(key.toString(), value)));
+      return AuthUser.fromJson(
+        decoded.map((key, value) => MapEntry(key.toString(), value)),
+      );
     } catch (_) {
       return null;
     }
   }
 
-
-  Future<AuthUser> getSocialLoginResponse({
+  @override
+  Future<ApiResponse<AuthUser>> getSocialLoginResponse({
     String? provider,
-    accessToken = "",
+    String accessToken = "",
   }) async {
-
-    var postBody = jsonEncode({
-      "provider": provider,
-      "access_token": "$accessToken"
-    });
-
-    Uri url = Uri.parse(AppApiEndPoints.socialLogin);
-
-    final response = await http.post(url,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: postBody);
-
-    var responseBody = jsonDecode(response.body);
-    print("Response"+responseBody.toString());
-    return AppLoginResponse.fromJson(response.body);
+    return ApiClient.instance.post<AuthUser>(
+      Api.socialLogin,
+      data: {"provider": provider, "access_token": accessToken},
+    );
   }
 }

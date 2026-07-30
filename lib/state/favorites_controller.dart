@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final favoritesProvider = NotifierProvider<FavoritesController, Set<String>>(FavoritesController.new);
+final favoritesProvider = NotifierProvider<FavoritesController, Set<String>>(
+  FavoritesController.new,
+);
 
 class FavoritesController extends Notifier<Set<String>> {
   @override
@@ -13,14 +15,26 @@ class FavoritesController extends Notifier<Set<String>> {
   }
 }
 
-final cartProvider = NotifierProvider<CartController, Map<String, int>>(CartController.new);
+final cartProvider = NotifierProvider<CartController, Map<String, int>>(
+  CartController.new,
+);
 
 class CartController extends Notifier<Map<String, int>> {
   @override
   Map<String, int> build() => <String, int>{};
 
-  void add(String id) {
-    state = <String, int>{...state, id: (state[id] ?? 0) + 1};
+  void add(String id, [int quantity = 1]) {
+    state = <String, int>{...state, id: (state[id] ?? 0) + quantity};
+  }
+
+  void setQuantity(String id, int quantity) {
+    final next = <String, int>{...state};
+    if (quantity <= 0) {
+      next.remove(id);
+    } else {
+      next[id] = quantity;
+    }
+    state = Map<String, int>.unmodifiable(next);
   }
 
   void remove(String id) {
@@ -35,4 +49,8 @@ class CartController extends Notifier<Map<String, int>> {
   }
 
   int get totalItems => state.values.fold(0, (sum, value) => sum + value);
+
+  void clear() {
+    state = const <String, int>{};
+  }
 }

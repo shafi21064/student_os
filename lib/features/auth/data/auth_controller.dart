@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:studentos/features/auth/data/auth_repository.dart';
 import 'package:studentos/features/auth/domain/auth_user.dart';
 
@@ -31,17 +35,20 @@ class AuthState {
     Object? pendingSignUp = _unset,
     String? message,
     String? error,
-  }) =>
-      AuthState(
-        user: identical(user, _unset) ? this.user : user as AuthUser?,
-        registeredUsers: registeredUsers ?? this.registeredUsers,
-        pendingSignUp: identical(pendingSignUp, _unset) ? this.pendingSignUp : pendingSignUp as PendingSignUp?,
-        message: message ?? this.message,
-        error: error ?? this.error,
-      );
+  }) => AuthState(
+    user: identical(user, _unset) ? this.user : user as AuthUser?,
+    registeredUsers: registeredUsers ?? this.registeredUsers,
+    pendingSignUp: identical(pendingSignUp, _unset)
+        ? this.pendingSignUp
+        : pendingSignUp as PendingSignUp?,
+    message: message ?? this.message,
+    error: error ?? this.error,
+  );
 }
 
-final authProvider = NotifierProvider<AuthController, AuthState>(AuthController.new);
+final authProvider = NotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);
 
 class AuthController extends Notifier<AuthState> {
   AuthRepository get _repository => ref.read(authRepositoryProvider);
@@ -57,10 +64,17 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(message: '', error: '');
   }
 
-  void signIn({required String countryCode, required String mobile, required String password}) {
+  void signIn({
+    required String countryCode,
+    required String mobile,
+    required String password,
+  }) {
     final normalizedMobile = _normalizeMobile('$countryCode$mobile');
     if (normalizedMobile.isEmpty || password.isEmpty) {
-      state = state.copyWith(error: 'Enter your mobile number and password.', message: '');
+      state = state.copyWith(
+        error: 'Enter your mobile number and password.',
+        message: '',
+      );
       return;
     }
 
@@ -70,7 +84,8 @@ class AuthController extends Notifier<AuthState> {
 
     // The supplied React prototype signs unknown credentials into a local demo
     // account. This preserves that behavior without claiming server auth.
-    final activeAccount = account ??
+    final activeAccount =
+        account ??
         AuthUser(
           id: 'demo-$normalizedMobile',
           name: 'Demo User',
@@ -82,7 +97,12 @@ class AuthController extends Notifier<AuthState> {
         );
 
     final users = account == null
-        ? <AuthUser>[...state.registeredUsers.where((item) => item.mobile != normalizedMobile), activeAccount]
+        ? <AuthUser>[
+            ...state.registeredUsers.where(
+              (item) => item.mobile != normalizedMobile,
+            ),
+            activeAccount,
+          ]
         : state.registeredUsers;
 
     state = state.copyWith(
@@ -106,8 +126,13 @@ class AuthController extends Notifier<AuthState> {
   }) {
     final normalizedName = name.trim();
     final normalizedMobile = _normalizeMobile('$countryCode$mobile');
-    if (normalizedName.isEmpty || normalizedMobile.isEmpty || password.isEmpty) {
-      state = state.copyWith(error: 'Name, mobile number, and password are required.', message: '');
+    if (normalizedName.isEmpty ||
+        normalizedMobile.isEmpty ||
+        password.isEmpty) {
+      state = state.copyWith(
+        error: 'Name, mobile number, and password are required.',
+        message: '',
+      );
       return;
     }
     if (password != confirmPassword) {
@@ -115,7 +140,10 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
     if (password.length < 6) {
-      state = state.copyWith(error: 'Use at least 6 characters for the password.', message: '');
+      state = state.copyWith(
+        error: 'Use at least 6 characters for the password.',
+        message: '',
+      );
       return;
     }
 
@@ -128,7 +156,8 @@ class AuthController extends Notifier<AuthState> {
         university: university.trim(),
         verificationCode: code,
       ),
-      message: 'Verification is ready for $normalizedMobile. Enter any 6-digit code in this demo.',
+      message:
+          'Verification is ready for $normalizedMobile. Enter any 6-digit code in this demo.',
       error: '',
     );
   }
@@ -137,7 +166,10 @@ class AuthController extends Notifier<AuthState> {
     final pending = state.pendingSignUp;
     if (pending == null) return;
     if (!RegExp(r'^\d{6}$').hasMatch(code.trim())) {
-      state = state.copyWith(error: 'Enter a 6-digit verification code.', message: '');
+      state = state.copyWith(
+        error: 'Enter a 6-digit verification code.',
+        message: '',
+      );
       return;
     }
 
@@ -150,7 +182,10 @@ class AuthController extends Notifier<AuthState> {
       verified: true,
       provider: AuthProviderType.email,
     );
-    final users = <AuthUser>[...state.registeredUsers.where((item) => item.mobile != pending.mobile), user];
+    final users = <AuthUser>[
+      ...state.registeredUsers.where((item) => item.mobile != pending.mobile),
+      user,
+    ];
     state = state.copyWith(
       user: user,
       registeredUsers: users,
@@ -160,6 +195,93 @@ class AuthController extends Notifier<AuthState> {
     );
     _repository.saveUsers(users);
     _repository.saveUser(user);
+  }
+
+  Future<void> onPressedGoogleLogin() async {
+    try {
+      state = state.copyWith(message: '', error: '');
+
+      final googleAccount = await GoogleSignIn.instance.authenticate();
+      final googleAuthentication = googleAccount.authentication;
+
+      final idToken = googleAuthentication.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
+        state = state.copyWith(
+          error: 'Google authentication token পাওয়া যায়নি।',
+        );
+        return;
+      }
+
+      // আপনার complete AuthRepository method
+      final response = await _repository.getSocialLoginResponse(
+        provider: 'google',
+        accessToken: idToken,
+      );
+
+      if (response.isSuccess != true) {
+        state = state.copyWith(
+          error: response.message?.toString() ?? 'Google login failed.',
+          message: '',
+        );
+        return;
+      }
+
+      final userJson = _socialUserJson(response.data);
+
+      final user = AuthUser(
+        id:
+            userJson['id']?.toString() ??
+            userJson['user_id']?.toString() ??
+            googleAccount.id,
+        name:
+            userJson['name']?.toString() ??
+            googleAccount.displayName ??
+            'Student',
+        mobile:
+            userJson['mobile']?.toString() ??
+            userJson['phone']?.toString() ??
+            '',
+        password: '',
+        university: userJson['university']?.toString() ?? '',
+        email: userJson['email']?.toString() ?? googleAccount.email,
+        verified: userJson['verified'] == true,
+        provider: AuthProviderType.google,
+      );
+
+      final users = <AuthUser>[
+        ...state.registeredUsers.where(
+          (existingUser) => existingUser.id != user.id,
+        ),
+        user,
+      ];
+
+      _repository.saveUsers(users);
+      _repository.saveUser(user);
+
+      state = state.copyWith(
+        user: user,
+        registeredUsers: users,
+        pendingSignUp: null,
+        message: response.message?.toString() ?? 'Welcome, ${user.firstName}!',
+        error: '',
+      );
+    } on GoogleSignInException catch (error) {
+      state = state.copyWith(
+        message: '',
+        error: error.code == GoogleSignInExceptionCode.canceled
+            ? 'Google login cancelled.'
+            : 'Google login failed.',
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Google login error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      state = state.copyWith(
+        message: '',
+        error: 'Google login failed. Please try again.',
+      );
+    }
   }
 
   void continueWithGoogle() {
@@ -177,23 +299,45 @@ class AuthController extends Notifier<AuthState> {
       provider: AuthProviderType.google,
     );
     final active = existing ?? fallback;
-    final users = existing == null ? <AuthUser>[...state.registeredUsers, active] : state.registeredUsers;
-    state = state.copyWith(user: active, registeredUsers: users, pendingSignUp: null, message: 'Welcome, ${active.name}!', error: '');
+    final users = existing == null
+        ? <AuthUser>[...state.registeredUsers, active]
+        : state.registeredUsers;
+    state = state.copyWith(
+      user: active,
+      registeredUsers: users,
+      pendingSignUp: null,
+      message: 'Welcome, ${active.name}!',
+      error: '',
+    );
     _repository.saveUsers(users);
     _repository.saveUser(active);
   }
 
-  void updateProfile({required String name, required String mobile, required String email, required String university}) {
+  void updateProfile({
+    required String name,
+    required String mobile,
+    required String email,
+    required String university,
+  }) {
     final current = state.user;
     if (current == null) return;
     final updated = current.copyWith(
       name: name.trim().isEmpty ? current.name : name.trim(),
-      mobile: _normalizeMobile(mobile).isEmpty ? current.mobile : _normalizeMobile(mobile),
+      mobile: _normalizeMobile(mobile).isEmpty
+          ? current.mobile
+          : _normalizeMobile(mobile),
       email: email.trim(),
       university: university.trim(),
     );
-    final users = state.registeredUsers.map((item) => item.id == current.id ? updated : item).toList(growable: false);
-    state = state.copyWith(user: updated, registeredUsers: users, message: 'Profile updated.', error: '');
+    final users = state.registeredUsers
+        .map((item) => item.id == current.id ? updated : item)
+        .toList(growable: false);
+    state = state.copyWith(
+      user: updated,
+      registeredUsers: users,
+      message: 'Profile updated.',
+      error: '',
+    );
     _repository.saveUsers(users);
     _repository.saveUser(updated);
   }
@@ -202,15 +346,29 @@ class AuthController extends Notifier<AuthState> {
     final current = state.user;
     if (current == null || current.verified == verified) return;
     final updated = current.copyWith(verified: verified);
-    final users = state.registeredUsers.map((item) => item.id == current.id ? updated : item).toList(growable: false);
+    final users = state.registeredUsers
+        .map((item) => item.id == current.id ? updated : item)
+        .toList(growable: false);
     state = state.copyWith(user: updated, registeredUsers: users);
     _repository.saveUsers(users);
     _repository.saveUser(updated);
   }
 
   void logout() {
+    final current = state.user;
+    if (Firebase.apps.isNotEmpty) {
+      unawaited(FirebaseAuth.instance.signOut());
+    }
+    if (current?.provider == AuthProviderType.google) {
+      unawaited(GoogleSignIn.instance.signOut());
+    }
     _repository.saveUser(null);
-    state = state.copyWith(user: null, pendingSignUp: null, message: '', error: '');
+    state = state.copyWith(
+      user: null,
+      pendingSignUp: null,
+      message: '',
+      error: '',
+    );
   }
 
   AuthUser? _findUser(bool Function(AuthUser user) test) {
@@ -221,4 +379,25 @@ class AuthController extends Notifier<AuthState> {
   }
 
   String _normalizeMobile(String value) => value.replaceAll(RegExp(r'\D'), '');
+
+  Map<String, Object?> _socialUserJson(Object? body) {
+    if (body is! Map) return const <String, Object?>{};
+    final root = body.map((key, value) => MapEntry(key.toString(), value));
+    final data = root['data'];
+    if (data is Map) {
+      final mappedData = data.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      final user = mappedData['user'];
+      if (user is Map) {
+        return user.map((key, value) => MapEntry(key.toString(), value));
+      }
+      return mappedData;
+    }
+    final user = root['user'];
+    if (user is Map) {
+      return user.map((key, value) => MapEntry(key.toString(), value));
+    }
+    return root;
+  }
 }

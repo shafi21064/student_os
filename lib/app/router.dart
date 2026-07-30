@@ -5,6 +5,7 @@ import 'package:studentos/features/auth/data/auth_controller.dart';
 import 'package:studentos/features/auth/presentation/auth_screen.dart';
 import 'package:studentos/features/budget/budget_screen.dart';
 import 'package:studentos/features/career/career_screen.dart';
+import 'package:studentos/features/commerce/commerce_screens.dart';
 import 'package:studentos/features/details/detail_screen.dart';
 import 'package:studentos/features/food/food_screen.dart';
 import 'package:studentos/features/home/home_screen.dart';
@@ -20,8 +21,8 @@ import 'package:studentos/features/shop/shop_screen.dart';
 import 'package:studentos/features/tasks/tasks_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
-final _careerNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'career');
 final _shopNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'shop');
+final _careerNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'career');
 final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
 final _foodNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'food');
 final _moreNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'more');
@@ -51,8 +52,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AuthScreen(),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => StudentOsShell(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) =>
+            StudentOsShell(navigationShell: navigationShell),
         branches: <StatefulShellBranch>[
+          StatefulShellBranch(
+            navigatorKey: _shopNavigatorKey,
+            routes: <RouteBase>[
+              GoRoute(
+                path: '/shop',
+                pageBuilder: (context, state) => NoTransitionPage<void>(
+                  key: state.pageKey,
+                  child: const ShopScreen(),
+                ),
+              ),
+            ],
+          ),
           StatefulShellBranch(
             navigatorKey: _careerNavigatorKey,
             routes: <RouteBase>[
@@ -60,64 +74,176 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/career',
                 pageBuilder: (context, state) => NoTransitionPage<void>(
                   key: state.pageKey,
-                  child: CareerScreen(section: state.uri.queryParameters['section']),
+                  child: CareerScreen(
+                    section: state.uri.queryParameters['section'],
+                  ),
                 ),
               ),
             ],
           ),
           StatefulShellBranch(
-            navigatorKey: _shopNavigatorKey,
-            routes: <RouteBase>[
-              GoRoute(path: '/shop', pageBuilder: (context, state) => NoTransitionPage<void>(key: state.pageKey, child: const ShopScreen())),
-            ],
-          ),
-          StatefulShellBranch(
             navigatorKey: _homeNavigatorKey,
             routes: <RouteBase>[
-              GoRoute(path: '/home', pageBuilder: (context, state) => NoTransitionPage<void>(key: state.pageKey, child: const HomeScreen())),
+              GoRoute(
+                path: '/home',
+                pageBuilder: (context, state) => NoTransitionPage<void>(
+                  key: state.pageKey,
+                  child: const HomeScreen(),
+                ),
+              ),
             ],
           ),
           StatefulShellBranch(
             navigatorKey: _foodNavigatorKey,
             routes: <RouteBase>[
-              GoRoute(path: '/food', pageBuilder: (context, state) => NoTransitionPage<void>(key: state.pageKey, child: const FoodScreen())),
+              GoRoute(
+                path: '/food',
+                pageBuilder: (context, state) => NoTransitionPage<void>(
+                  key: state.pageKey,
+                  child: const FoodScreen(),
+                ),
+              ),
             ],
           ),
           StatefulShellBranch(
             navigatorKey: _moreNavigatorKey,
             routes: <RouteBase>[
-              GoRoute(path: '/more', pageBuilder: (context, state) => NoTransitionPage<void>(key: state.pageKey, child: const MoreScreen())),
+              GoRoute(
+                path: '/more',
+                pageBuilder: (context, state) => NoTransitionPage<void>(
+                  key: state.pageKey,
+                  child: const MoreScreen(),
+                ),
+              ),
             ],
           ),
         ],
       ),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/search', builder: (context, state) => const SearchScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/profile', builder: (context, state) => const ProfileScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/notifications', builder: (context, state) => const NotificationsScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/budget', builder: (context, state) => const BudgetScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/tasks', builder: (context, state) => const TasksScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/student-id', builder: (context, state) => const StudentIdScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/tuition', builder: (context, state) => const TuitionScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/buy-sell', builder: (context, state) => const BuySellScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/marketplace', builder: (context, state) => const MarketplaceScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/events', builder: (context, state) => const EventsScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/notes', builder: (context, state) => const NotesScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/calculator', builder: (context, state) => const CalculatorScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/bookmarks', builder: (context, state) => const BookmarksScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/saved', builder: (context, state) => const SavedItemsScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/search',
+        builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/cart',
+        builder: (context, state) => const CartScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/checkout',
+        builder: (context, state) => const CheckoutScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/purchase-result',
+        builder: (context, state) => PurchaseResultScreen(
+          success: state.uri.queryParameters['status'] != 'failed',
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/budget',
+        builder: (context, state) => const BudgetScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/tasks',
+        builder: (context, state) => const TasksScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/student-id',
+        builder: (context, state) => const StudentIdScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/tuition',
+        builder: (context, state) => const TuitionScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/buy-sell',
+        builder: (context, state) => const BuySellScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/marketplace',
+        builder: (context, state) => const MarketplaceScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/events',
+        builder: (context, state) => const EventsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/notes',
+        builder: (context, state) => const NotesScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/calculator',
+        builder: (context, state) => const CalculatorScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/bookmarks',
+        builder: (context, state) => const BookmarksScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/wishlist',
+        builder: (context, state) => const WishlistScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/saved',
+        builder: (context, state) => const SavedItemsScreen(),
+      ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/settings',
-        builder: (context, state) => SettingsScreen(focus: state.uri.queryParameters['focus']),
+        builder: (context, state) =>
+            SettingsScreen(focus: state.uri.queryParameters['focus']),
       ),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/help', builder: (context, state) => const HelpCenterScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/privacy', builder: (context, state) => const PrivacyScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/about', builder: (context, state) => const AboutScreen()),
-      GoRoute(parentNavigatorKey: _rootNavigatorKey, path: '/logout', builder: (context, state) => const LogoutScreen()),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/help',
+        builder: (context, state) => const HelpCenterScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/privacy',
+        builder: (context, state) => const PrivacyScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/about',
+        builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/logout',
+        builder: (context, state) => const LogoutScreen(),
+      ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
         path: '/details/:kind/:id',
-        builder: (context, state) => DetailScreen(kind: state.pathParameters['kind']!, id: state.pathParameters['id']!),
+        builder: (context, state) => DetailScreen(
+          kind: state.pathParameters['kind']!,
+          id: state.pathParameters['id']!,
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
