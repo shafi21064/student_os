@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studentos/core/theme/app_colors.dart';
+import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/app_card.dart';
 import 'package:studentos/core/widgets/common_widgets.dart';
 import 'package:studentos/data/demo_data.dart';
 import 'package:studentos/data/models.dart';
 import 'package:studentos/features/auth/data/auth_controller.dart';
+import 'package:studentos/features/commerce/commerce_widgets.dart';
 import 'package:studentos/state/favorites_controller.dart';
 
 class CartScreen extends ConsumerWidget {
@@ -21,12 +23,14 @@ class CartScreen extends ConsumerWidget {
       bottomNavigationBar: lines.isEmpty
           ? null
           : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              minimum: AppSizes.bottomActionInsets,
               child: FilledButton(
                 onPressed: () => context.push('/checkout'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.purple,
-                  minimumSize: const Size.fromHeight(54),
+                  minimumSize: const Size.fromHeight(
+                    AppSizes.bottomActionHeight,
+                  ),
                 ),
                 child: Text('Buy All · ৳${_money(total)}'),
               ),
@@ -38,30 +42,16 @@ class CartScreen extends ConsumerWidget {
               message: 'Add products, deals, or food before checkout.',
             )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              padding: AppSizes.listPadding,
               children: <Widget>[
-                const AppCard(
-                  color: AppColors.purpleSoft,
-                  child: Row(
-                    children: <Widget>[
-                      Icon(Icons.lock_outline_rounded, color: AppColors.purple),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Secure cart. Student discount is applied at checkout.',
-                          style: TextStyle(
-                            color: AppColors.muted,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                const SecureCheckoutCard(
+                  message:
+                      'Secure cart. Student discount is applied at checkout.',
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSizes.gapLg),
                 ...lines.map(
                   (line) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.only(bottom: AppSizes.gapMd),
                     child: AppCard(
                       child: Row(
                         children: <Widget>[
@@ -71,7 +61,7 @@ class CartScreen extends ConsumerWidget {
                             size: 58,
                             emojiSize: 30,
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSizes.gapMd),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +99,7 @@ class CartScreen extends ConsumerWidget {
                           ),
                           Column(
                             children: <Widget>[
-                              _Stepper(
+                              QuantityStepper(
                                 value: line.quantity,
                                 onChanged: (value) => ref
                                     .read(cartProvider.notifier)
@@ -168,7 +158,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       bottomNavigationBar: lines.isEmpty
           ? null
           : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              minimum: AppSizes.bottomActionInsets,
               child: FilledButton(
                 onPressed: () {
                   if (!_pickup && _address.text.trim().isEmpty) {
@@ -180,7 +170,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 },
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.purple,
-                  minimumSize: const Size.fromHeight(54),
+                  minimumSize: const Size.fromHeight(
+                    AppSizes.bottomActionHeight,
+                  ),
                 ),
                 child: Text('Place order · ৳${_money(total)}'),
               ),
@@ -192,10 +184,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               message: 'Your cart is empty.',
             )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              padding: AppSizes.listPadding,
               children: <Widget>[
-                const _SecureCheckoutCard(),
-                const SizedBox(height: 14),
+                const SecureCheckoutCard(),
+                const SizedBox(height: AppSizes.gapLg),
                 AppCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,21 +196,24 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         'Contact details',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 12),
-                      _InfoRow(label: 'Name', value: user?.name ?? 'Student'),
-                      _InfoRow(
+                      const SizedBox(height: AppSizes.gapMd),
+                      CommerceInfoRow(
+                        label: 'Name',
+                        value: user?.name ?? 'Student',
+                      ),
+                      CommerceInfoRow(
                         label: 'Phone',
                         value: user?.mobile.isNotEmpty == true
                             ? user!.mobile
                             : 'Not added',
                       ),
-                      _InfoRow(
+                      CommerceInfoRow(
                         label: 'Campus',
                         value: user?.university.isNotEmpty == true
                             ? user!.university
                             : 'Not added',
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSizes.gapSm),
                       TextField(
                         controller: _address,
                         minLines: 2,
@@ -227,7 +222,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           labelText: 'Delivery address',
                         ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSizes.gapSm),
                       TextField(
                         controller: _note,
                         decoration: const InputDecoration(
@@ -237,7 +232,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSizes.gapLg),
                 AppCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,7 +251,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSizes.gapLg),
                 AppCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -265,7 +260,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         'Payment method',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: AppSizes.gapSm),
                       ...<String>['StudentOS Pay', 'bKash', 'Card'].map(
                         (method) => ListTile(
                           contentPadding: EdgeInsets.zero,
@@ -282,7 +277,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSizes.gapLg),
                 AppCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,29 +286,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         'Order summary',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSizes.gapMd),
                       ...lines.map(
-                        (line) => _InfoRow(
+                        (line) => CommerceInfoRow(
                           label: '${line.item.title} × ${line.quantity}',
                           value:
                               '৳${_money(_price(line.item.price) * line.quantity)}',
                         ),
                       ),
                       const Divider(height: 24),
-                      _InfoRow(
+                      CommerceInfoRow(
                         label: 'Subtotal',
                         value: '৳${_money(subtotal)}',
                       ),
-                      _InfoRow(
+                      CommerceInfoRow(
                         label: 'Student discount',
                         value: '-৳${_money(discount)}',
                       ),
-                      _InfoRow(
+                      CommerceInfoRow(
                         label: 'Delivery',
                         value: '৳${_money(delivery)}',
                       ),
-                      const SizedBox(height: 6),
-                      _InfoRow(
+                      const SizedBox(height: AppSizes.gapXs),
+                      CommerceInfoRow(
                         label: 'Total',
                         value: '৳${_money(total)}',
                         strong: true,
@@ -426,99 +421,6 @@ class WishlistScreen extends ConsumerWidget {
             ),
     );
   }
-}
-
-class _SecureCheckoutCard extends StatelessWidget {
-  const _SecureCheckoutCard();
-
-  @override
-  Widget build(BuildContext context) => const AppCard(
-    color: AppColors.purpleSoft,
-    child: Row(
-      children: <Widget>[
-        Icon(Icons.shield_outlined, color: AppColors.purple),
-        SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Secure checkout with student discount protection.',
-            style: TextStyle(
-              color: AppColors.muted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    this.strong = false,
-  });
-
-  final String label;
-  final String value;
-  final bool strong;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Row(
-      children: <Widget>[
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: strong
-                  ? null
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: strong ? FontWeight.w900 : FontWeight.w700,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _Stepper extends StatelessWidget {
-  const _Stepper({required this.value, required this.onChanged});
-
-  final int value;
-  final ValueChanged<int> onChanged;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        IconButton(
-          onPressed: () => onChanged(value - 1),
-          icon: const Icon(Icons.remove_rounded),
-          visualDensity: VisualDensity.compact,
-        ),
-        Text('$value', style: const TextStyle(fontWeight: FontWeight.w900)),
-        IconButton(
-          onPressed: () => onChanged(value + 1),
-          icon: const Icon(Icons.add_rounded),
-          visualDensity: VisualDensity.compact,
-        ),
-      ],
-    ),
-  );
 }
 
 class _CartLine {

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studentos/core/theme/app_colors.dart';
+import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/app_card.dart';
 import 'package:studentos/core/widgets/common_widgets.dart';
 import 'package:studentos/data/demo_data.dart';
 import 'package:studentos/data/models.dart';
+import 'package:studentos/features/commerce/commerce_widgets.dart';
 import 'package:studentos/state/favorites_controller.dart';
 import 'package:studentos/state/registrations_controller.dart';
 
@@ -76,7 +78,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
       ),
       bottomNavigationBar: _isCartItem(widget.kind)
           ? SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              minimum: AppSizes.bottomActionInsets,
               child: Row(
                 children: <Widget>[
                   Expanded(
@@ -84,14 +86,16 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
                       onPressed: () => _performAction(context, item),
                       style: FilledButton.styleFrom(
                         backgroundColor: _accentFor(widget.kind),
-                        minimumSize: const Size.fromHeight(54),
+                        minimumSize: const Size.fromHeight(
+                          AppSizes.bottomActionHeight,
+                        ),
                       ),
                       child: Text(
                         actionComplete ? 'Added to Cart' : 'Add to Cart',
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSizes.gapSm),
                   Expanded(
                     child: FilledButton(
                       onPressed: () {
@@ -100,7 +104,9 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
                       },
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.purple,
-                        minimumSize: const Size.fromHeight(54),
+                        minimumSize: const Size.fromHeight(
+                          AppSizes.bottomActionHeight,
+                        ),
                       ),
                       child: Text('Buy Now · ${item.price}'),
                     ),
@@ -109,14 +115,16 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
               ),
             )
           : SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              minimum: AppSizes.bottomActionInsets,
               child: FilledButton.icon(
                 onPressed: actionComplete
                     ? null
                     : () => _performAction(context, item),
                 style: FilledButton.styleFrom(
                   backgroundColor: _accentFor(widget.kind),
-                  minimumSize: const Size.fromHeight(54),
+                  minimumSize: const Size.fromHeight(
+                    AppSizes.bottomActionHeight,
+                  ),
                 ),
                 icon: Icon(
                   actionComplete
@@ -211,30 +219,15 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
                     style: TextStyle(fontWeight: FontWeight.w900),
                   ),
                   const Spacer(),
-                  IconButton.filledTonal(
-                    onPressed: _quantity == 1
-                        ? null
-                        : () => setState(() => _quantity--),
-                    icon: const Icon(Icons.remove_rounded),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      '$_quantity',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  IconButton.filled(
-                    onPressed: () => setState(() => _quantity++),
-                    icon: const Icon(Icons.add_rounded),
+                  QuantityStepper(
+                    value: _quantity,
+                    onChanged: (value) =>
+                        setState(() => _quantity = value.clamp(1, 99)),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSizes.gapLg),
           ],
           AppCard(
             child: Column(

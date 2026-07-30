@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studentos/core/theme/app_colors.dart';
+import 'package:studentos/core/theme/app_sizes.dart';
+import 'package:studentos/core/widgets/common_widgets.dart';
 import 'package:studentos/features/auth/data/auth_controller.dart';
 import 'package:studentos/state/favorites_controller.dart';
 
@@ -60,12 +62,17 @@ class _StudentOsShellState extends ConsumerState<StudentOsShell> {
         .fold<int>(0, (sum, value) => sum + value);
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(72),
+        preferredSize: const Size.fromHeight(AppSizes.topBarHeight),
         child: SafeArea(
           bottom: false,
           child: Container(
-            height: 72,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            height: AppSizes.topBarHeight,
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.pagePadding,
+              AppSizes.gapSm,
+              AppSizes.pagePadding,
+              AppSizes.gapSm,
+            ),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               border: Border(
@@ -78,12 +85,12 @@ class _StudentOsShellState extends ConsumerState<StudentOsShell> {
             ),
             child: Row(
               children: <Widget>[
-                _RoundIconButton(
+                AppRoundIconButton(
                   tooltip: 'Menu',
                   onPressed: () => context.go('/more'),
                   icon: Icons.menu_rounded,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSizes.gapSm),
                 Expanded(
                   child: Image.asset(
                     'assets/branding/studentos_wordmark.png',
@@ -94,26 +101,26 @@ class _StudentOsShellState extends ConsumerState<StudentOsShell> {
                 Badge(
                   isLabelVisible: cartCount > 0,
                   label: Text('$cartCount'),
-                  child: _RoundIconButton(
+                  child: AppRoundIconButton(
                     tooltip: 'Cart',
                     onPressed: () => context.push('/cart'),
                     icon: Icons.shopping_cart_outlined,
-                    size: 32,
+                    size: AppSizes.topBarIcon,
                     iconSize: 17,
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: AppSizes.gapXs),
                 Badge(
                   label: const Text('3'),
-                  child: _RoundIconButton(
+                  child: AppRoundIconButton(
                     tooltip: 'Notifications',
                     onPressed: () => context.push('/notifications'),
                     icon: Icons.notifications_none_rounded,
-                    size: 32,
+                    size: AppSizes.topBarIcon,
                     iconSize: 17,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.gapMd),
                 InkWell(
                   onTap: () => context.push('/profile'),
                   customBorder: const CircleBorder(),
@@ -240,46 +247,6 @@ class _StudentBottomNavigation extends StatelessWidget {
             ),
           );
         }),
-      ),
-    ),
-  );
-}
-
-class _RoundIconButton extends StatelessWidget {
-  const _RoundIconButton({
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-    this.size = 36,
-    this.iconSize = 19,
-  });
-
-  final String tooltip;
-  final VoidCallback onPressed;
-  final IconData icon;
-  final double size;
-  final double iconSize;
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: InkWell(
-      onTap: onPressed,
-      customBorder: const CircleBorder(),
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: .65),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: iconSize,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
       ),
     ),
   );
