@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:studentos/core/theme/app_colors.dart';
+import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/app_card.dart';
 import 'package:studentos/core/widgets/budget_donut.dart';
 import 'package:studentos/core/widgets/common_widgets.dart';
@@ -22,110 +23,115 @@ class HomeScreen extends ConsumerWidget {
     final tasks = ref.watch(tasksProvider);
     final budget = ref.watch(budgetProvider);
     final completed = tasks.where((task) => task.completed).length;
-    return CustomScrollView(
-      key: const PageStorageKey<String>('home-scroll'),
-      slivers: <Widget>[
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
-          sliver: SliverList.list(
-            children: <Widget>[
-              const _Greeting(),
-              const SizedBox(height: 12),
-              const _AiSearchBar(),
-              const SizedBox(height: 18),
-              _BudgetCard(budget: budget),
-              const SizedBox(height: 18),
-              _TasksCard(tasks: tasks, completed: completed),
-              const SizedBox(height: 22),
-              const SectionHeader(title: 'Explore StudentOS'),
-              const SizedBox(height: 10),
-              const _FeatureHighlights(),
-              const SizedBox(height: 22),
-              SectionHeader(
-                title: 'Job Opportunities',
-                onSeeAll: () => context.go('/career?section=internships'),
-              ),
-              const SizedBox(height: 10),
-              ...internships.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: CatalogListTile(
-                    item: item,
-                    onTap: () => _open(context, 'job', item),
-                  ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.pagePadding),
+      child: CustomScrollView(
+        key: const PageStorageKey<String>('home-scroll'),
+        slivers: <Widget>[
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(0, 18, 0, 32),
+            sliver: SliverList.list(
+              children: <Widget>[
+                const _Greeting(),
+                const SizedBox(height: 12),
+                const _AiSearchBar(),
+                const SizedBox(height: 18),
+                _BudgetCard(budget: budget),
+                const SizedBox(height: 18),
+                _TasksCard(tasks: tasks, completed: completed),
+                const SizedBox(height: 22),
+                const SectionHeader(title: 'Explore StudentOS'),
+                const SizedBox(height: 10),
+                const _FeatureHighlights(),
+                const SizedBox(height: 22),
+                SectionHeader(
+                  title: 'Job Opportunities',
+                  onSeeAll: () => context.go('/career?section=internships'),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SectionHeader(
-                title: 'Skill Development',
-                onSeeAll: () => context.go('/career?section=courses'),
-              ),
-              const SizedBox(height: 10),
-              _HorizontalCatalog(items: courses, kind: 'course'),
-              const SizedBox(height: 22),
-              SectionHeader(
-                title: 'Buy & Sell',
-                onSeeAll: () => context.push('/buy-sell'),
-              ),
-              const SizedBox(height: 10),
-              ...buySellListings
-                  .take(3)
-                  .map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: CatalogListTile(
-                        item: item,
-                        onTap: () => _open(context, 'buysell', item),
-                      ),
+                const SizedBox(height: 10),
+                ...internships.map(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: CatalogListTile(
+                      item: item,
+                      onTap: () => _open(context, 'job', item),
                     ),
                   ),
-              const SizedBox(height: 12),
-              SectionHeader(
-                title: 'Marketplace Picks',
-                onSeeAll: () => context.push('/marketplace'),
-              ),
-              const SizedBox(height: 10),
-              _HorizontalCatalog(
-                items: marketplaceProducts,
-                kind: 'marketplace',
-                showFavorite: true,
-              ),
-              const SizedBox(height: 22),
-              SectionHeader(
-                title: 'Food Deals Near You',
-                onSeeAll: () => context.go('/food'),
-              ),
-              const SizedBox(height: 10),
-              _HorizontalCatalog(items: restaurants, kind: 'restaurant'),
-              const SizedBox(height: 22),
-              SectionHeader(
-                title: 'Nearby Tuition Jobs',
-                onSeeAll: () => context.push('/tuition'),
-              ),
-              const SizedBox(height: 10),
-              ...tuitionJobs
-                  .take(3)
-                  .map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: CatalogListTile(
-                        item: item,
-                        onTap: () => _open(context, 'tuition', item),
-                        trailing: FilledButton.tonal(
-                          onPressed: () => _open(context, 'tuition', item),
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size(64, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 13),
-                          ),
-                          child: const Text('Apply'),
+                ),
+                const SizedBox(height: 12),
+                SectionHeader(
+                  title: 'Skill Development',
+                  onSeeAll: () => context.go('/career?section=courses'),
+                ),
+                const SizedBox(height: 10),
+                _HorizontalCatalog(items: courses, kind: 'course'),
+                const SizedBox(height: 22),
+                SectionHeader(
+                  title: 'Buy & Sell',
+                  onSeeAll: () => context.push('/buy-sell'),
+                ),
+                const SizedBox(height: 10),
+                ...buySellListings
+                    .take(3)
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: CatalogListTile(
+                          item: item,
+                          onTap: () => _open(context, 'buysell', item),
                         ),
                       ),
                     ),
-                  ),
-            ],
+                const SizedBox(height: 12),
+                SectionHeader(
+                  title: 'Marketplace Picks',
+                  onSeeAll: () => context.push('/marketplace'),
+                ),
+                const SizedBox(height: 10),
+                _HorizontalCatalog(
+                  items: marketplaceProducts,
+                  kind: 'marketplace',
+                  showFavorite: true,
+                ),
+                const SizedBox(height: 22),
+                SectionHeader(
+                  title: 'Food Deals Near You',
+                  onSeeAll: () => context.go('/food'),
+                ),
+                const SizedBox(height: 10),
+                _HorizontalCatalog(items: restaurants, kind: 'restaurant'),
+                const SizedBox(height: 22),
+                SectionHeader(
+                  title: 'Nearby Tuition Jobs',
+                  onSeeAll: () => context.push('/tuition'),
+                ),
+                const SizedBox(height: 10),
+                ...tuitionJobs
+                    .take(3)
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: CatalogListTile(
+                          item: item,
+                          onTap: () => _open(context, 'tuition', item),
+                          trailing: FilledButton.tonal(
+                            onPressed: () => _open(context, 'tuition', item),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(64, 36),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 13,
+                              ),
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ),
+                      ),
+                    ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -165,7 +171,7 @@ class _AiSearchBarState extends State<_AiSearchBar> {
     onTap: () => context.push('/search'),
     child: AnimatedContainer(
       duration: const Duration(milliseconds: 550),
-      height: 48,
+      height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -176,35 +182,39 @@ class _AiSearchBarState extends State<_AiSearchBar> {
         ],
       ),
       child: Row(
-        children: <Widget>[
-          Icon(
-            Icons.search_rounded,
-            size: 19,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 260),
-              transitionBuilder: (child, animation) =>
-                  FadeTransition(opacity: animation, child: child),
-              child: Text(
-                searchPlaceholders[_index],
-                key: ValueKey<int>(_index),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 13,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              Icon(
+                Icons.search_rounded,
+                size: 19,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 9),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                transitionBuilder: (child, animation) =>
+                    FadeTransition(opacity: animation, child: child),
+                child: Text(
+                  searchPlaceholders[_index],
+                  key: ValueKey<int>(_index),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
           const Icon(
-            Icons.auto_awesome_rounded,
-            size: 18,
-            color: AppColors.purple,
-          ),
+                Icons.auto_awesome_rounded,
+                size: 18,
+                color: AppColors.purple,
+              ),
         ],
       ),
     ),
@@ -537,49 +547,67 @@ class _FeatureHighlights extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     height: 124,
     child: ListView.separated(
+      key: const PageStorageKey<String>('home-feature-highlights-scroll'),
+      clipBehavior: Clip.hardEdge,
+      primary: false,
       scrollDirection: Axis.horizontal,
       itemCount: _items.length,
       separatorBuilder: (_, __) => const SizedBox(width: 11),
       itemBuilder: (context, index) {
         final item = _items[index];
-        return InkWell(
+        return Material(
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(24),
-          onTap: () => context.push(item.route),
-          child: Ink(
-            width: 96,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: item.colors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => _open(context, item.route),
+            child: Ink(
+              width: 96,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: item.colors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
               ),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(item.emoji, style: const TextStyle(fontSize: 31)),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 7),
-                  child: Text(
-                    item.label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      height: 1.15,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(item.emoji, style: const TextStyle(fontSize: 31)),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 7),
+                    child: Text(
+                      item.label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
       },
     ),
   );
+
+  static void _open(BuildContext context, String route) {
+    switch (route) {
+      case '/career':
+      case '/food':
+      case '/shop':
+        context.go(route);
+      default:
+        context.push(route);
+    }
+  }
 }
 
 class _HorizontalCatalog extends ConsumerWidget {
@@ -653,7 +681,7 @@ class _HorizontalCatalog extends ConsumerWidget {
                                   : Icons.favorite_border_rounded,
                               color: favorites.contains(item.id)
                                   ? AppColors.danger
-                                  : null,
+                                  : AppColors.muted,
                               size: 17,
                             ),
                           ),

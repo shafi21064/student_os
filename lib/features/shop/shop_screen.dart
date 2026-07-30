@@ -173,7 +173,7 @@ class _ProductCard extends StatelessWidget {
                     child: IconButton.filled(
                       onPressed: onFavorite,
                       style: IconButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.surface, minimumSize: const Size(34, 34), padding: EdgeInsets.zero),
-                      icon: Icon(favorite ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 18, color: favorite ? AppColors.danger : null),
+                      icon: Icon(favorite ? Icons.favorite_rounded : Icons.favorite_border_rounded, size: 18, color: favorite ? AppColors.danger : AppColors.muted),
                     ),
                   ),
                   if (item.rating != null)

@@ -56,18 +56,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             StudentOsShell(navigationShell: navigationShell),
         branches: <StatefulShellBranch>[
           StatefulShellBranch(
-            navigatorKey: _shopNavigatorKey,
-            routes: <RouteBase>[
-              GoRoute(
-                path: '/shop',
-                pageBuilder: (context, state) => NoTransitionPage<void>(
-                  key: state.pageKey,
-                  child: const ShopScreen(),
-                ),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
             navigatorKey: _careerNavigatorKey,
             routes: <RouteBase>[
               GoRoute(
@@ -77,6 +65,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                   child: CareerScreen(
                     section: state.uri.queryParameters['section'],
                   ),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: _shopNavigatorKey,
+            routes: <RouteBase>[
+              GoRoute(
+                path: '/shop',
+                pageBuilder: (context, state) => NoTransitionPage<void>(
+                  key: state.pageKey,
+                  child: const ShopScreen(),
                 ),
               ),
             ],

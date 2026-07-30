@@ -249,7 +249,7 @@ class AppRoundIconButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(
             context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: .65),
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: .30),
           shape: BoxShape.circle,
         ),
         child: Icon(

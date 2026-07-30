@@ -19,14 +19,14 @@ class StudentOsShell extends ConsumerStatefulWidget {
 class _StudentOsShellState extends ConsumerState<StudentOsShell> {
   static const _destinations = <_Destination>[
     _Destination(
-      label: 'Shop',
-      icon: Icons.shopping_bag_outlined,
-      selectedIcon: Icons.shopping_bag_rounded,
-    ),
-    _Destination(
       label: 'Career',
       icon: Icons.work_outline_rounded,
       selectedIcon: Icons.work_rounded,
+    ),
+    _Destination(
+      label: 'Shop',
+      icon: Icons.shopping_bag_outlined,
+      selectedIcon: Icons.shopping_bag_rounded,
     ),
     _Destination(
       label: 'Home',
@@ -63,91 +63,93 @@ class _StudentOsShellState extends ConsumerState<StudentOsShell> {
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(AppSizes.topBarHeight),
-        child: SafeArea(
-          bottom: false,
-          child: Container(
-            height: AppSizes.topBarHeight,
-            padding: const EdgeInsets.fromLTRB(
-              AppSizes.pagePadding,
-              AppSizes.gapSm,
-              AppSizes.pagePadding,
-              AppSizes.gapSm,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outlineVariant.withValues(alpha: 0.45),
+        child: ColoredBox(
+          color: Theme.of(context).colorScheme.surface,
+          child: SafeArea(
+            bottom: false,
+            child: Container(
+              height: AppSizes.topBarHeight,
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.pagePadding,
+                AppSizes.gapSm,
+                AppSizes.pagePadding,
+                AppSizes.gapSm,
+              ),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withValues(alpha: 0.45),
+                  ),
                 ),
               ),
-            ),
-            child: Row(
-              children: <Widget>[
-                AppRoundIconButton(
-                  tooltip: 'Menu',
-                  onPressed: () => context.go('/more'),
-                  icon: Icons.menu_rounded,
-                ),
-                const SizedBox(width: AppSizes.gapSm),
-                Expanded(
-                  child: Image.asset(
-                    'assets/branding/studentos_wordmark.png',
-                    height: 32,
-                    alignment: Alignment.centerLeft,
+              child: Row(
+                children: <Widget>[
+                  AppRoundIconButton(
+                    tooltip: 'Menu',
+                    onPressed: () => context.go('/more'),
+                    icon: Icons.menu_rounded,
                   ),
-                ),
-                Badge(
-                  isLabelVisible: cartCount > 0,
-                  label: Text('$cartCount'),
-                  child: AppRoundIconButton(
-                    tooltip: 'Cart',
-                    onPressed: () => context.push('/cart'),
-                    icon: Icons.shopping_cart_outlined,
-                    size: AppSizes.topBarIcon,
-                    iconSize: 17,
+                  const SizedBox(width: AppSizes.gapSm),
+                  Expanded(
+                    child: Image.asset(
+                      'assets/branding/studentos_wordmark.png',
+                      height: 32,
+                      alignment: Alignment.centerLeft,
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSizes.gapXs),
-                Badge(
-                  label: const Text('3'),
-                  child: AppRoundIconButton(
-                    tooltip: 'Notifications',
-                    onPressed: () => context.push('/notifications'),
-                    icon: Icons.notifications_none_rounded,
-                    size: AppSizes.topBarIcon,
-                    iconSize: 17,
+                  Badge(
+                    isLabelVisible: cartCount > 0,
+                    label: Text('$cartCount'),
+                    child: AppRoundIconButton(
+                      tooltip: 'Cart',
+                      onPressed: () => context.push('/cart'),
+                      icon: Icons.shopping_cart_outlined,
+                      size: AppSizes.topBarIcon,
+                      iconSize: 17,
+                    ),
                   ),
-                ),
-                const SizedBox(width: AppSizes.gapMd),
-                InkWell(
-                  onTap: () => context.push('/profile'),
-                  customBorder: const CircleBorder(),
-                  child: Semantics(
-                    button: true,
-                    label: 'Open profile for ${user?.name ?? 'student'}',
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: LinearGradient(
-                          colors: <Color>[AppColors.teal, AppColors.purple],
+                  const SizedBox(width: AppSizes.gapXs),
+                  Badge(
+                    label: const Text('3'),
+                    child: AppRoundIconButton(
+                      tooltip: 'Notifications',
+                      onPressed: () => context.push('/notifications'),
+                      icon: Icons.notifications_none_rounded,
+                      size: AppSizes.topBarIcon,
+                      iconSize: 17,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.gapMd),
+                  InkWell(
+                    onTap: () => context.push('/profile'),
+                    customBorder: const CircleBorder(),
+                    child: Semantics(
+                      button: true,
+                      label: 'Open profile for ${user?.name ?? 'student'}',
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: <Color>[AppColors.teal, AppColors.purple],
+                          ),
                         ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        user?.initials ?? 'S',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                        alignment: Alignment.center,
+                        child: Text(
+                          user?.initials ?? 'S',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
