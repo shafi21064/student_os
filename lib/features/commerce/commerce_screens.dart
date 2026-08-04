@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/app_card.dart';
@@ -19,7 +20,7 @@ class CartScreen extends ConsumerWidget {
     final lines = _cartLines(ref.watch(cartProvider));
     final total = _total(lines);
     return Scaffold(
-      appBar: AppBar(title: const Text('Your Cart')),
+      appBar: AppBar(title: const Text(AppStrings.yourCart)),
       bottomNavigationBar: lines.isEmpty
           ? null
           : SafeArea(
@@ -109,7 +110,7 @@ class CartScreen extends ConsumerWidget {
                                 onPressed: () => ref
                                     .read(cartProvider.notifier)
                                     .setQuantity(line.item.id, 0),
-                                child: const Text('Remove'),
+                                child: const Text(AppStrings.remove),
                               ),
                             ],
                           ),
@@ -154,7 +155,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final total = subtotal - discount + delivery;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Checkout')),
+      appBar: AppBar(title: const Text(AppStrings.checkout)),
       bottomNavigationBar: lines.isEmpty
           ? null
           : SafeArea(
@@ -193,25 +194,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Contact details',
+                        AppStrings.contactDetails,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSizes.gapMd),
                       CommerceInfoRow(
-                        label: 'Name',
-                        value: user?.name ?? 'Student',
+                        label: AppStrings.name,
+                        value: user?.name ?? AppStrings.student,
                       ),
                       CommerceInfoRow(
-                        label: 'Phone',
+                        label: AppStrings.phone,
                         value: user?.mobile.isNotEmpty == true
                             ? user!.mobile
-                            : 'Not added',
+                            : AppStrings.notAdded,
                       ),
                       CommerceInfoRow(
-                        label: 'Campus',
+                        label: AppStrings.campus,
                         value: user?.university.isNotEmpty == true
                             ? user!.university
-                            : 'Not added',
+                            : AppStrings.notAdded,
                       ),
                       const SizedBox(height: AppSizes.gapSm),
                       TextField(
@@ -238,15 +239,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Delivery options',
+                        AppStrings.deliveryOptions,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         value: _pickup,
                         onChanged: (value) => setState(() => _pickup = value),
-                        title: const Text('Campus pickup'),
-                        subtitle: const Text('No delivery fee'),
+                        title: const Text(AppStrings.campusPickup),
+                        subtitle: const Text(AppStrings.noDeliveryFee),
                       ),
                     ],
                   ),
@@ -257,7 +258,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Payment method',
+                        AppStrings.paymentMethod,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSizes.gapSm),
@@ -283,7 +284,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Order summary',
+                        AppStrings.orderSummary,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSizes.gapMd),
@@ -296,20 +297,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ),
                       const Divider(height: 24),
                       CommerceInfoRow(
-                        label: 'Subtotal',
+                        label: AppStrings.subtotal,
                         value: '৳${_money(subtotal)}',
                       ),
                       CommerceInfoRow(
-                        label: 'Student discount',
+                        label: AppStrings.studentDiscount,
                         value: '-৳${_money(discount)}',
                       ),
                       CommerceInfoRow(
-                        label: 'Delivery',
+                        label: AppStrings.delivery,
                         value: '৳${_money(delivery)}',
                       ),
                       const SizedBox(height: AppSizes.gapXs),
                       CommerceInfoRow(
-                        label: 'Total',
+                        label: AppStrings.total,
                         value: '৳${_money(total)}',
                         strong: true,
                       ),
@@ -391,7 +392,7 @@ class WishlistScreen extends ConsumerWidget {
         .where((item) => favorites.contains(item.id))
         .toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Wishlist')),
+      appBar: AppBar(title: const Text(AppStrings.wishlist)),
       body: items.isEmpty
           ? const EmptyState(
               emoji: '💜',

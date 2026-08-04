@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -64,15 +63,16 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(message: '', error: '');
   }
 
-  void signIn({
+  Future<void> signIn({
     required String countryCode,
     required String mobile,
     required String password,
-  }) {
-    final normalizedMobile = _normalizeMobile('$countryCode$mobile');
-    if (normalizedMobile.isEmpty || password.isEmpty) {
+  }) async {
+    final loginEmail = _loginEmailFromMobile(mobile);
+    final normalizedMobile = _normalizeMobileWithCountry(countryCode, mobile);
+    if (loginEmail.isEmpty || password.isEmpty) {
       state = state.copyWith(
-        error: 'Enter your mobile number and password.',
+        error: 'Enter your email and password.',
         message: '',
       );
       return;
@@ -82,53 +82,59 @@ class AuthController extends Notifier<AuthState> {
       (entry) => entry.mobile == normalizedMobile && entry.password == password,
     );
 
-    // The supplied React prototype signs unknown credentials into a local demo
-    // account. This preserves that behavior without claiming server auth.
-    final activeAccount =
-        account ??
-        AuthUser(
-          id: 'demo-$normalizedMobile',
-          name: 'Demo User',
-          mobile: normalizedMobile,
-          password: password,
-          university: '',
-          verified: true,
-          provider: AuthProviderType.email,
-        );
+    if (account != null) {
+      state = state.copyWith(
+        user: account,
+        pendingSignUp: null,
+        message: 'Welcome back, ${account.firstName}!',
+        error: '',
+      );
+      _repository.saveUser(account);
+      return;
+    }
 
-    final users = account == null
-        ? <AuthUser>[
-            ...state.registeredUsers.where(
-              (item) => item.mobile != normalizedMobile,
-            ),
-            activeAccount,
-          ]
-        : state.registeredUsers;
+    final response = await _repository.signInWithEmail(
+      email: loginEmail,
+      password: password,
+    );
 
+    if (!response.isSuccess || response.data == null) {
+      state = state.copyWith(
+        message: '',
+        error: response.message ?? 'Login failed.',
+      );
+      return;
+    }
+
+    final activeAccount = response.data! as AuthUser;
+    final users = <AuthUser>[
+      ...state.registeredUsers.where((item) => item.id != activeAccount.id),
+      activeAccount,
+    ];
+
+    _repository.saveUsers(users);
+    _repository.saveUser(activeAccount);
     state = state.copyWith(
       user: activeAccount,
       registeredUsers: users,
       pendingSignUp: null,
-      message: 'Welcome back, ${activeAccount.firstName}!',
+      message: response.message ?? 'Welcome back, ${activeAccount.firstName}!',
       error: '',
     );
-    _repository.saveUsers(users);
-    _repository.saveUser(activeAccount);
   }
 
-  void startSignUp({
+  Future<void> startSignUp({
     required String name,
     required String countryCode,
     required String mobile,
     required String password,
     required String confirmPassword,
     required String university,
-  }) {
+  }) async {
     final normalizedName = name.trim();
-    final normalizedMobile = _normalizeMobile('$countryCode$mobile');
-    if (normalizedName.isEmpty ||
-        normalizedMobile.isEmpty ||
-        password.isEmpty) {
+    final signupEmail = _loginEmailFromMobile(mobile);
+    final normalizedMobile = _normalizeMobileWithCountry(countryCode, mobile);
+    if (normalizedName.isEmpty || signupEmail.isEmpty || password.isEmpty) {
       state = state.copyWith(
         error: 'Name, mobile number, and password are required.',
         message: '',
@@ -147,17 +153,37 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
 
-    final code = (100000 + Random().nextInt(900000)).toString();
+    final response = await _repository.signUpWithEmail(
+      name: normalizedName,
+      email: signupEmail,
+      password: password,
+      institute: university.trim(),
+    );
+
+    if (!response.isSuccess || response.data == null) {
+      state = state.copyWith(
+        message: '',
+        error: response.message ?? 'Registration failed.',
+      );
+      return;
+    }
+
+    final user = (response.data! as AuthUser).copyWith(
+      mobile: normalizedMobile,
+      university: university.trim(),
+    );
+    final users = <AuthUser>[
+      ...state.registeredUsers.where((item) => item.id != user.id),
+      user,
+    ];
+
+    _repository.saveUsers(users);
+    _repository.saveUser(user);
     state = state.copyWith(
-      pendingSignUp: PendingSignUp(
-        name: normalizedName,
-        mobile: normalizedMobile,
-        password: password,
-        university: university.trim(),
-        verificationCode: code,
-      ),
-      message:
-          'Verification is ready for $normalizedMobile. Enter any 6-digit code in this demo.',
+      user: user,
+      registeredUsers: users,
+      pendingSignUp: null,
+      message: response.message ?? 'Welcome aboard, ${user.firstName}!',
       error: '',
     );
   }
@@ -379,6 +405,24 @@ class AuthController extends Notifier<AuthState> {
   }
 
   String _normalizeMobile(String value) => value.replaceAll(RegExp(r'\D'), '');
+
+  String _normalizeMobileWithCountry(String countryCode, String mobile) {
+    final country = _normalizeMobile(countryCode);
+    var local = _normalizeMobile(mobile);
+    if (country == '880' && local.startsWith('0')) {
+      local = local.substring(1);
+    }
+    return '$country$local';
+  }
+
+  String _loginEmailFromMobile(String value) {
+    final trimmed = value.trim();
+    if (trimmed.contains('@')) return trimmed;
+    final digits = _normalizeMobile(trimmed);
+    if (digits.isEmpty || digits.startsWith('0')) return digits;
+    if (digits.startsWith('880')) return '0${digits.substring(3)}';
+    return '0$digits';
+  }
 
   Map<String, Object?> _socialUserJson(Object? body) {
     if (body is! Map) return const <String, Object?>{};

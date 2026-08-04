@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/data/models.dart';
@@ -8,7 +9,7 @@ class SectionHeader extends StatelessWidget {
     required this.title,
     super.key,
     this.onSeeAll,
-    this.actionLabel = 'See All',
+    this.actionLabel = AppStrings.seeAll,
   });
 
   final String title;
@@ -25,7 +26,7 @@ class SectionHeader extends StatelessWidget {
         TextButton.icon(
           onPressed: onSeeAll,
           iconAlignment: IconAlignment.end,
-          icon: const Icon(Icons.chevron_right_rounded, size: 18),
+          icon: const Icon(Icons.chevron_right_rounded, size: AppSizes.iconSm),
           label: Text(actionLabel),
         ),
     ],
@@ -39,7 +40,7 @@ class EmojiTile extends StatelessWidget {
     super.key,
     this.size = 64,
     this.emojiSize = 32,
-    this.borderRadius = 16,
+    this.borderRadius = AppSizes.radiusMd,
   });
 
   final String emoji;
@@ -93,7 +94,7 @@ class BadgeLabel extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppSizes.radiusPill),
     ),
     child: Text(
       label,
@@ -117,9 +118,9 @@ class CatalogListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: Theme.of(context).colorScheme.surface,
-    borderRadius: BorderRadius.circular(20),
+    borderRadius: BorderRadius.circular(AppSizes.radiusLg),
     child: InkWell(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(14),

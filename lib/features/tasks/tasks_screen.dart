@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/widgets/app_card.dart';
-import 'package:studentos/core/widgets/common_widgets.dart';
 import 'package:studentos/data/models.dart';
 import 'package:studentos/state/tasks_controller.dart';
 
@@ -14,133 +14,344 @@ class TasksScreen extends ConsumerStatefulWidget {
 }
 
 class _TasksScreenState extends ConsumerState<TasksScreen> {
+  final _controller = TextEditingController();
   var _filter = _TaskFilter.all;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final tasks = ref.watch(tasksProvider);
+    final done = tasks.where((item) => item.completed).length;
     final visible = switch (_filter) {
       _TaskFilter.all => tasks,
-      _TaskFilter.active => tasks.where((item) => !item.completed).toList(),
-      _TaskFilter.completed => tasks.where((item) => item.completed).toList(),
+      _TaskFilter.pending => tasks.where((item) => !item.completed).toList(),
+      _TaskFilter.done => tasks.where((item) => item.completed).toList(),
     };
-    final completed = tasks.where((item) => item.completed).length;
+
     return Scaffold(
+      backgroundColor: AppColors.canvas,
       appBar: AppBar(
-        title: const Text('Task Manager'),
-        actions: <Widget>[
-          IconButton(tooltip: 'Clear completed', onPressed: completed == 0 ? null : () => ref.read(tasksProvider.notifier).clearCompleted(), icon: const Icon(Icons.cleaning_services_outlined)),
-          const SizedBox(width: 6),
-        ],
+        title: const Text(AppStrings.todo),
+        leadingWidth: 72,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: IconButton.filledTonal(
+            tooltip: AppStrings.back,
+            onPressed: () => Navigator.maybePop(context),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => _addTask(context), icon: const Icon(Icons.add_rounded), label: const Text('Add task')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: <Widget>[
+          Row(
+            children: <Widget>[
+              _StatCard(
+                label: AppStrings.total,
+                value: tasks.length,
+                color: Colors.white,
+                valueColor: AppColors.ink,
+              ),
+              const SizedBox(width: 12),
+              _StatCard(
+                label: AppStrings.pending,
+                value: tasks.length - done,
+                color: AppColors.orangeSoft,
+                valueColor: AppColors.warning,
+              ),
+              const SizedBox(width: 12),
+              _StatCard(
+                label: AppStrings.done,
+                value: done,
+                color: AppColors.greenSoft,
+                valueColor: AppColors.secondary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           AppCard(
-            color: AppColors.purpleSoft,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            radius: 16,
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: <Widget>[
-                Text('Today', style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 5),
-                Text('$completed of ${tasks.length} tasks complete', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 12),
-                LinearProgressIndicator(value: tasks.isEmpty ? 0 : completed / tasks.length, minHeight: 9, borderRadius: BorderRadius.circular(999)),
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _addTask(),
+                    decoration: InputDecoration(
+                      hintText: AppStrings.addNewTask,
+                      hintStyle: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 13,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.inputBackground,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 13,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.brand),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _addTask,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.blue,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(62, 46),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  child: const Text(AppStrings.add),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 15),
-          SegmentedButton<_TaskFilter>(
-            segments: const <ButtonSegment<_TaskFilter>>[
-              ButtonSegment(value: _TaskFilter.all, label: Text('All')),
-              ButtonSegment(value: _TaskFilter.active, label: Text('Active')),
-              ButtonSegment(value: _TaskFilter.completed, label: Text('Done')),
-            ],
-            selected: <_TaskFilter>{_filter},
-            onSelectionChanged: (value) => setState(() => _filter = value.first),
-          ),
-          const SizedBox(height: 15),
-          if (visible.isEmpty)
-            const EmptyState(emoji: '✅', title: 'Nothing here', message: 'Add a new task or change the filter.')
-          else
-            AppCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: List<Widget>.generate(visible.length, (index) {
-                  final task = visible[index];
-                  return Column(
-                    children: <Widget>[
-                      Dismissible(
-                        key: ValueKey<int>(task.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 22),
-                          color: AppColors.danger,
-                          child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-                        ),
-                        onDismissed: (_) => ref.read(tasksProvider.notifier).remove(task.id),
-                        child: _TaskTile(task: task, onToggle: () => ref.read(tasksProvider.notifier).toggle(task.id)),
-                      ),
-                      if (index < visible.length - 1) const Divider(height: 1, indent: 60),
-                    ],
-                  );
-                }),
+          const SizedBox(height: 16),
+          Row(
+            children: <Widget>[
+              _FilterButton(
+                label: AppStrings.all,
+                selected: _filter == _TaskFilter.all,
+                onTap: () => setState(() => _filter = _TaskFilter.all),
               ),
-            ),
+              const SizedBox(width: 8),
+              _FilterButton(
+                label: AppStrings.pending,
+                selected: _filter == _TaskFilter.pending,
+                onTap: () => setState(() => _filter = _TaskFilter.pending),
+              ),
+              const SizedBox(width: 8),
+              _FilterButton(
+                label: AppStrings.done,
+                selected: _filter == _TaskFilter.done,
+                onTap: () => setState(() => _filter = _TaskFilter.done),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            radius: 16,
+            padding: EdgeInsets.zero,
+            child: visible.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Column(
+                      children: <Widget>[
+                        Text('✅', style: TextStyle(fontSize: 34)),
+                        SizedBox(height: 8),
+                        Text(
+                          'No tasks here!',
+                          style: TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    children: List<Widget>.generate(visible.length, (index) {
+                      final task = visible[index];
+                      return Column(
+                        children: <Widget>[
+                          _TaskRow(
+                            task: task,
+                            onToggle: () => ref
+                                .read(tasksProvider.notifier)
+                                .toggle(task.id),
+                            onRemove: () => ref
+                                .read(tasksProvider.notifier)
+                                .remove(task.id),
+                          ),
+                          if (index < visible.length - 1)
+                            const Divider(height: 1, color: AppColors.canvas),
+                        ],
+                      );
+                    }),
+                  ),
+          ),
         ],
       ),
     );
   }
 
-  Future<void> _addTask(BuildContext context) async {
-    final controller = TextEditingController();
-    final title = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.viewInsetsOf(context).bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('Add a task', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 14),
-            TextField(controller: controller, autofocus: true, textInputAction: TextInputAction.done, onSubmitted: (value) => Navigator.pop(context, value), decoration: const InputDecoration(hintText: 'What needs to be done?')),
-            const SizedBox(height: 14),
-            FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('Add task')),
-          ],
-        ),
-      ),
-    );
-    if (title != null) ref.read(tasksProvider.notifier).add(title);
+  void _addTask() {
+    ref.read(tasksProvider.notifier).add(_controller.text);
+    _controller.clear();
   }
 }
 
-class _TaskTile extends StatelessWidget {
-  const _TaskTile({required this.task, required this.onToggle});
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.valueColor,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: AppCard(
+      radius: 16,
+      color: color,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: <Widget>[
+          Text(
+            '$value',
+            style: TextStyle(
+              color: valueColor,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: Container(
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.blue : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected ? AppColors.blue : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.muted,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _TaskRow extends StatelessWidget {
+  const _TaskRow({
+    required this.task,
+    required this.onToggle,
+    required this.onRemove,
+  });
 
   final TaskItem task;
   final VoidCallback onToggle;
+  final VoidCallback onRemove;
 
   @override
-  Widget build(BuildContext context) => ListTile(
-        onTap: onToggle,
-        leading: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: task.completed ? AppColors.blue : Colors.transparent,
-            shape: BoxShape.circle,
-            border: Border.all(color: task.completed ? AppColors.blue : Theme.of(context).colorScheme.outline, width: 2),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    child: Row(
+      children: <Widget>[
+        InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onToggle,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: task.completed ? AppColors.blue : Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: task.completed ? AppColors.blue : AppColors.border,
+                width: 2,
+              ),
+            ),
+            child: task.completed
+                ? const Icon(Icons.check_rounded, color: Colors.white, size: 13)
+                : null,
           ),
-          child: task.completed ? const Icon(Icons.check_rounded, size: 16, color: Colors.white) : null,
         ),
-        title: Text(task.title, style: TextStyle(fontWeight: FontWeight.w700, decoration: task.completed ? TextDecoration.lineThrough : null, color: task.completed ? Theme.of(context).colorScheme.onSurfaceVariant : null)),
-        trailing: const Icon(Icons.drag_handle_rounded),
-      );
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            task.title,
+            style: TextStyle(
+              color: task.completed ? AppColors.border : AppColors.ink,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              decoration: task.completed ? TextDecoration.lineThrough : null,
+              decorationColor: AppColors.border,
+              decorationThickness: 2,
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: AppStrings.deleteTask,
+          onPressed: onRemove,
+          visualDensity: VisualDensity.compact,
+          iconSize: 18,
+          icon: const Icon(Icons.close_rounded, color: AppColors.border),
+        ),
+      ],
+    ),
+  );
 }
 
-enum _TaskFilter { all, active, completed }
+enum _TaskFilter { all, pending, done }

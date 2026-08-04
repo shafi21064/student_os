@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/widgets/app_card.dart';
 import 'package:studentos/data/demo_data.dart';
@@ -24,7 +25,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
-    _name = TextEditingController(text: user?.name ?? 'Student');
+    _name = TextEditingController(text: user?.name ?? AppStrings.student);
     _email = TextEditingController(text: user?.email ?? '');
     _phone = TextEditingController(text: user?.mobile ?? '');
     _university = TextEditingController(text: user?.university ?? '');
@@ -41,13 +42,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _toggleEdit() {
     if (_editing) {
-      ref.read(authProvider.notifier).updateProfile(
+      ref
+          .read(authProvider.notifier)
+          .updateProfile(
             name: _name.text,
             mobile: _phone.text,
             email: _email.text,
             university: _university.text,
           );
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile saved')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile saved')));
     }
     setState(() => _editing = !_editing);
   }
@@ -58,11 +63,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final university = user?.university.trim();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text(AppStrings.profile),
         actions: <Widget>[
           TextButton.icon(
             onPressed: _toggleEdit,
-            icon: Icon(_editing ? Icons.check_rounded : Icons.edit_outlined, size: 18),
+            icon: Icon(
+              _editing ? Icons.check_rounded : Icons.edit_outlined,
+              size: 18,
+            ),
             label: Text(_editing ? 'Save' : 'Edit'),
           ),
           const SizedBox(width: 6),
@@ -79,17 +87,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   height: 112,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: LinearGradient(colors: <Color>[AppColors.teal, AppColors.purple]),
+                    gradient: LinearGradient(
+                      colors: <Color>[AppColors.teal, AppColors.purple],
+                    ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(user?.initials ?? 'S', style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.w900)),
+                  child: Text(
+                    user?.initials ?? 'S',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
                 if (_editing)
                   Positioned(
                     right: 0,
                     bottom: 0,
                     child: IconButton.filled(
-                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo picker is ready for backend integration.'))),
+                      onPressed: () =>
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Photo picker is ready for backend integration.',
+                              ),
+                            ),
+                          ),
                       icon: const Icon(Icons.camera_alt_outlined, size: 18),
                     ),
                   ),
@@ -97,18 +121,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          Text(user?.name ?? _name.text, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            user?.name ?? _name.text,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           const SizedBox(height: 5),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(user?.verified == true ? Icons.verified_rounded : Icons.pending_outlined, size: 17, color: user?.verified == true ? AppColors.teal : AppColors.orange),
+              Icon(
+                user?.verified == true
+                    ? Icons.verified_rounded
+                    : Icons.pending_outlined,
+                size: 17,
+                color: user?.verified == true
+                    ? AppColors.teal
+                    : AppColors.orange,
+              ),
               const SizedBox(width: 5),
               Text(
                 user?.verified == true
                     ? 'Verified ${university == null || university.isEmpty ? 'student' : '$university student'}'
                     : 'Student verification pending',
-                style: TextStyle(color: user?.verified == true ? AppColors.teal : AppColors.orange, fontWeight: FontWeight.w800, fontSize: 12),
+                style: TextStyle(
+                  color: user?.verified == true
+                      ? AppColors.teal
+                      : AppColors.orange,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -116,13 +158,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           AppCard(
             child: Column(
               children: <Widget>[
-                _ProfileField(icon: Icons.person_outline_rounded, label: 'Full name', controller: _name, editable: _editing),
+                _ProfileField(
+                  icon: Icons.person_outline_rounded,
+                  label: 'Full name',
+                  controller: _name,
+                  editable: _editing,
+                ),
                 const Divider(height: 24),
-                _ProfileField(icon: Icons.email_outlined, label: 'Email', controller: _email, editable: _editing, emptyValue: 'Not added'),
+                _ProfileField(
+                  icon: Icons.email_outlined,
+                  label: 'Email',
+                  controller: _email,
+                  editable: _editing,
+                  emptyValue: 'Not added',
+                ),
                 const Divider(height: 24),
-                _ProfileField(icon: Icons.phone_outlined, label: 'Phone', controller: _phone, editable: _editing),
+                _ProfileField(
+                  icon: Icons.phone_outlined,
+                  label: 'Phone',
+                  controller: _phone,
+                  editable: _editing,
+                ),
                 const Divider(height: 24),
-                _ProfileField(icon: Icons.school_outlined, label: 'University', controller: _university, editable: _editing, emptyValue: 'Not added'),
+                _ProfileField(
+                  icon: Icons.school_outlined,
+                  label: 'University',
+                  controller: _university,
+                  editable: _editing,
+                  emptyValue: 'Not added',
+                ),
               ],
             ),
           ),
@@ -131,15 +195,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text('Academic Information', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                const Text(
+                  'Academic Information',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                ),
                 const SizedBox(height: 14),
-                _InfoRow(icon: Icons.school_outlined, label: 'University', value: university == null || university.isEmpty ? 'Not added' : university),
+                _InfoRow(
+                  icon: Icons.school_outlined,
+                  label: 'University',
+                  value: university == null || university.isEmpty
+                      ? 'Not added'
+                      : university,
+                ),
                 const SizedBox(height: 12),
-                const _InfoRow(icon: Icons.computer_rounded, label: 'Department', value: 'Computer Science & Engineering'),
+                const _InfoRow(
+                  icon: Icons.computer_rounded,
+                  label: 'Department',
+                  value: 'Computer Science & Engineering',
+                ),
                 const SizedBox(height: 12),
-                const _InfoRow(icon: Icons.calendar_today_outlined, label: 'Study year', value: '3rd Year'),
+                const _InfoRow(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'Study year',
+                  value: '3rd Year',
+                ),
                 const SizedBox(height: 12),
-                const _InfoRow(icon: Icons.badge_outlined, label: 'Student ID', value: 'STU-2001001'),
+                const _InfoRow(
+                  icon: Icons.badge_outlined,
+                  label: 'Student ID',
+                  value: 'STU-2001001',
+                ),
               ],
             ),
           ),
@@ -155,9 +240,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('Student verification', style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.w900)),
+                      Text(
+                        'Student verification',
+                        style: TextStyle(
+                          color: AppColors.purple,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       SizedBox(height: 3),
-                      Text('Verify by university email or student ID upload.', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+                      Text(
+                        'Verify by university email or student ID upload.',
+                        style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      ),
                     ],
                   ),
                 ),
@@ -183,7 +277,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 }
 
 class _ProfileField extends StatelessWidget {
-  const _ProfileField({required this.icon, required this.label, required this.controller, required this.editable, this.emptyValue = 'Not set'});
+  const _ProfileField({
+    required this.icon,
+    required this.label,
+    required this.controller,
+    required this.editable,
+    this.emptyValue = 'Not set',
+  });
 
   final IconData icon;
   final String label;
@@ -193,27 +293,45 @@ class _ProfileField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: <Widget>[
-          Icon(icon, color: AppColors.teal),
-          const SizedBox(width: 12),
-          Expanded(
-            child: editable
-                ? TextField(controller: controller, decoration: InputDecoration(labelText: label, isDense: true))
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 11)),
-                      const SizedBox(height: 2),
-                      Text(controller.text.trim().isEmpty ? emptyValue : controller.text, style: const TextStyle(fontWeight: FontWeight.w800)),
-                    ],
+    children: <Widget>[
+      Icon(icon, color: AppColors.teal),
+      const SizedBox(width: 12),
+      Expanded(
+        child: editable
+            ? TextField(
+                controller: controller,
+                decoration: InputDecoration(labelText: label, isDense: true),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
                   ),
-          ),
-        ],
-      );
+                  const SizedBox(height: 2),
+                  Text(
+                    controller.text.trim().isEmpty
+                        ? emptyValue
+                        : controller.text,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+      ),
+    ],
+  );
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   final IconData icon;
   final String label;
@@ -221,13 +339,24 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: <Widget>[
-          Icon(icon, size: 20, color: AppColors.muted),
-          const SizedBox(width: 11),
-          Expanded(child: Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12))),
-          Flexible(child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
-        ],
-      );
+    children: <Widget>[
+      Icon(icon, size: 20, color: AppColors.muted),
+      const SizedBox(width: 11),
+      Expanded(
+        child: Text(
+          label,
+          style: const TextStyle(color: AppColors.muted, fontSize: 12),
+        ),
+      ),
+      Flexible(
+        child: Text(
+          value,
+          textAlign: TextAlign.right,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+        ),
+      ),
+    ],
+  );
 }
 
 class NotificationsScreen extends StatefulWidget {
@@ -248,54 +377,89 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(
-          title: const Text('Notifications'),
-          actions: <Widget>[
-            TextButton(onPressed: () => setState(() => _read = List<bool>.filled(notifications.length, true)), child: const Text('Mark all read')),
-            const SizedBox(width: 6),
-          ],
+    appBar: AppBar(
+      title: const Text(AppStrings.notifications),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => setState(
+            () => _read = List<bool>.filled(notifications.length, true),
+          ),
+          child: const Text('Mark all read'),
         ),
-        body: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: notifications.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (context, index) {
-            final item = notifications[index];
-            final read = _read[index];
-            return AppCard(
-              color: read ? null : item.color.withValues(alpha: .055),
-              onTap: () => setState(() => _read[index] = true),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(color: item.color.withValues(alpha: .12), borderRadius: BorderRadius.circular(16)),
-                    child: Icon(item.icon, color: item.color),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        const SizedBox(width: 6),
+      ],
+    ),
+    body: ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: notifications.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        final item = notifications[index];
+        final read = _read[index];
+        return AppCard(
+          color: read ? null : item.color.withValues(alpha: .055),
+          onTap: () => setState(() => _read[index] = true),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: item.color.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(item.icon, color: item.color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
                       children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Expanded(child: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w900))),
-                            if (!read) Container(width: 8, height: 8, decoration: BoxDecoration(color: item.color, shape: BoxShape.circle)),
-                          ],
+                        Expanded(
+                          child: Text(
+                            item.title,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(item.body, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4, fontSize: 12)),
-                        const SizedBox(height: 6),
-                        Text(item.time, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.w700)),
+                        if (!read)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: item.color,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      item.body,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        height: 1.4,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      item.time,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          },
-        ),
-      );
+            ],
+          ),
+        );
+      },
+    ),
+  );
 }

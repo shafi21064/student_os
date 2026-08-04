@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studentos/core/api/api.dart';
@@ -19,6 +20,16 @@ abstract interface class AuthRepository {
   AuthSnapshot load();
   void saveUser(AuthUser? user);
   void saveUsers(List<AuthUser> users);
+  Future<ApiResponse<AuthUser>> signInWithEmail({
+    required String email,
+    required String password,
+  });
+  Future<ApiResponse<AuthUser>> signUpWithEmail({
+    required String name,
+    required String email,
+    required String password,
+    required String institute,
+  });
   Future<ApiResponse<AuthUser>> getSocialLoginResponse({
     required String provider,
     required String accessToken,
@@ -75,6 +86,111 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     );
   }
 
+  @override
+  Future<ApiResponse<AuthUser>> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      Api.loginWithEmail,
+      data: FormData.fromMap({'email': email, 'password': password}),
+      options: Options(headers: {'accept': '*/*'}),
+    );
+
+    if (!response.isSuccess) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: response.message,
+        error: response.error,
+      );
+    }
+
+    final body = response.data;
+    if (body is! Map<String, dynamic> || body['result'] != true) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body is Map<String, dynamic>
+            ? body['message']?.toString()
+            : 'Login failed.',
+      );
+    }
+
+    final data = body['data'];
+    if (data is! Map<String, dynamic>) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body['message']?.toString() ?? 'Login failed.',
+      );
+    }
+
+    final token = data['access_token']?.toString();
+    if (token != null && token.isNotEmpty) {
+      ApiClient.instance.setAuthToken(token);
+    }
+
+    return ApiResponse<AuthUser>.success(
+      statusCode: response.statusCode,
+      data: _authUserFromAuthData(data, password),
+      message: body['message']?.toString(),
+    );
+  }
+
+  @override
+  Future<ApiResponse<AuthUser>> signUpWithEmail({
+    required String name,
+    required String email,
+    required String password,
+    required String institute,
+  }) async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      Api.signupWithEmail,
+      data: FormData.fromMap({
+        'name': name,
+        'email': email,
+        'password': password,
+        'institute': institute,
+      }),
+      options: Options(headers: {'accept': '*/*'}),
+    );
+
+    if (!response.isSuccess) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: response.message,
+        error: response.error,
+      );
+    }
+
+    final body = response.data;
+    if (body is! Map<String, dynamic> || body['result'] != true) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body is Map<String, dynamic>
+            ? body['message']?.toString()
+            : 'Registration failed.',
+      );
+    }
+
+    final data = body['data'];
+    if (data is! Map<String, dynamic>) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body['message']?.toString() ?? 'Registration failed.',
+      );
+    }
+
+    final token = data['access_token']?.toString();
+    if (token != null && token.isNotEmpty) {
+      ApiClient.instance.setAuthToken(token);
+    }
+
+    return ApiResponse<AuthUser>.success(
+      statusCode: response.statusCode,
+      data: _authUserFromAuthData(data, password, institute: institute),
+      message: body['message']?.toString(),
+    );
+  }
+
   List<AuthUser> _decodeUsers(String? source) {
     if (source == null || source.isEmpty) return const <AuthUser>[];
     try {
@@ -104,6 +220,48 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  AuthUser _authUserFromAuthData(
+    Map<String, dynamic> data,
+    String password, {
+    String institute = '',
+  }) {
+    final userJson = data['user'];
+    final user = userJson is Map<String, dynamic>
+        ? userJson
+        : const <String, dynamic>{};
+    final id = user['id']?.toString() ?? data['user_id']?.toString() ?? '';
+    final name = _firstNonBlank(
+      user['name'],
+      user['full_name'],
+      user['first_name'],
+      'Student',
+    );
+
+    return AuthUser(
+      id: id.isEmpty ? 'user-${user['email'] ?? data['user_id']}' : id,
+      name: name,
+      mobile: user['phone']?.toString() ?? '',
+      password: password,
+      university: institute,
+      email: user['email']?.toString() ?? '',
+      verified: user['is_active'] == 1 || user['email_verified_at'] != null,
+      provider: AuthProviderType.email,
+    );
+  }
+
+  String _firstNonBlank(
+    Object? first,
+    Object? second,
+    Object? third,
+    String fallback,
+  ) {
+    for (final value in <Object?>[first, second, third]) {
+      final text = value?.toString().trim() ?? '';
+      if (text.isNotEmpty) return text;
+    }
+    return fallback;
   }
 
   @override

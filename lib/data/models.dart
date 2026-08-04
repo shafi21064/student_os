@@ -1,18 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:studentos/core/theme/app_colors.dart';
 
 @immutable
 class TaskItem {
-  const TaskItem({required this.id, required this.title, required this.completed});
+  const TaskItem({
+    required this.id,
+    required this.title,
+    required this.completed,
+  });
 
   final int id;
   final String title;
   final bool completed;
 
   TaskItem copyWith({String? title, bool? completed}) => TaskItem(
-        id: id,
-        title: title ?? this.title,
-        completed: completed ?? this.completed,
-      );
+    id: id,
+    title: title ?? this.title,
+    completed: completed ?? this.completed,
+  );
 }
 
 @immutable
@@ -30,7 +35,7 @@ class CatalogItem {
     this.meta,
     this.category = 'All',
     this.description = '',
-    this.background = const Color(0xFFEFF6FF),
+    this.background = AppColors.purpleSoft,
   });
 
   final String id;

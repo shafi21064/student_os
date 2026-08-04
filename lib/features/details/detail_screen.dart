@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/app_card.dart';
@@ -30,7 +31,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
     final item = findCatalogItem(widget.kind, widget.id);
     if (item == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Not found')),
+        appBar: AppBar(title: const Text(AppStrings.notFound)),
         body: const EmptyState(
           emoji: '🔎',
           title: 'Item not found',
@@ -336,9 +337,9 @@ String _titleFor(String kind) => switch (kind) {
 Color _accentFor(String kind) => switch (kind) {
   'food' || 'restaurant' => AppColors.coral,
   'course' || 'job' => AppColors.purple,
-  'event' => const Color(0xFF0D9488),
-  'buysell' => const Color(0xFFEC4899),
-  'tuition' => const Color(0xFF0891B2),
+  'event' => AppColors.teal,
+  'buysell' => AppColors.pink,
+  'tuition' => AppColors.teal,
   'marketplace' => AppColors.orange,
   _ => AppColors.blue,
 };

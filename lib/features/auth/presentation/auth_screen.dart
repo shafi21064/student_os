@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/features/auth/data/auth_controller.dart';
 
@@ -72,10 +75,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: <Color>[
-              Color(0xFFE0F5F5),
-              Color(0xFFF8FAFC),
-              Color(0xFFF0EDFF),
-              Color(0xFFE0FFF6),
+              AppColors.tealSoft,
+              AppColors.canvas,
+              AppColors.purpleSoft,
+              AppColors.greenSoft,
             ],
           ),
         ),
@@ -212,7 +215,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       FilledButton(
         onPressed: () => _signIn(controller),
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF3B2A78),
+          backgroundColor: AppColors.brand,
           minimumSize: const Size.fromHeight(52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(17),
@@ -430,7 +433,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           autofillHints: const <String>[AutofillHints.telephoneNumber],
           decoration: const InputDecoration(
             labelText: 'Mobile number',
-            hintText: '1700000000',
+            hintText: AppStrings.mobileExample,
           ),
         ),
       ),
@@ -439,22 +442,26 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   void _signIn(AuthController controller) {
     controller.clearFeedback();
-    controller.signIn(
-      countryCode: _countryCode,
-      mobile: _mobileController.text,
-      password: _passwordController.text,
+    unawaited(
+      controller.signIn(
+        countryCode: _countryCode,
+        mobile: _mobileController.text,
+        password: _passwordController.text,
+      ),
     );
   }
 
   void _signUp(AuthController controller) {
     controller.clearFeedback();
-    controller.startSignUp(
-      name: _nameController.text,
-      countryCode: _countryCode,
-      mobile: _mobileController.text,
-      password: _passwordController.text,
-      confirmPassword: _confirmPasswordController.text,
-      university: _universityController.text,
+    unawaited(
+      controller.startSignUp(
+        name: _nameController.text,
+        countryCode: _countryCode,
+        mobile: _mobileController.text,
+        password: _passwordController.text,
+        confirmPassword: _confirmPasswordController.text,
+        university: _universityController.text,
+      ),
     );
   }
 

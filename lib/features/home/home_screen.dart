@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/app_card.dart';
@@ -40,12 +41,12 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 18),
                 _TasksCard(tasks: tasks, completed: completed),
                 const SizedBox(height: 22),
-                const SectionHeader(title: 'Explore StudentOS'),
+                const SectionHeader(title: AppStrings.exploreStudentOs),
                 const SizedBox(height: 10),
                 const _FeatureHighlights(),
                 const SizedBox(height: 22),
                 SectionHeader(
-                  title: 'Job Opportunities',
+                  title: AppStrings.jobOpportunities,
                   onSeeAll: () => context.go('/career?section=internships'),
                 ),
                 const SizedBox(height: 10),
@@ -60,14 +61,14 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 SectionHeader(
-                  title: 'Skill Development',
+                  title: AppStrings.skillDevelopment,
                   onSeeAll: () => context.go('/career?section=courses'),
                 ),
                 const SizedBox(height: 10),
                 _HorizontalCatalog(items: courses, kind: 'course'),
                 const SizedBox(height: 22),
                 SectionHeader(
-                  title: 'Buy & Sell',
+                  title: AppStrings.buySell,
                   onSeeAll: () => context.push('/buy-sell'),
                 ),
                 const SizedBox(height: 10),
@@ -84,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                 const SizedBox(height: 12),
                 SectionHeader(
-                  title: 'Marketplace Picks',
+                  title: AppStrings.marketplacePicks,
                   onSeeAll: () => context.push('/marketplace'),
                 ),
                 const SizedBox(height: 10),
@@ -95,14 +96,14 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 22),
                 SectionHeader(
-                  title: 'Food Deals Near You',
+                  title: AppStrings.foodDealsNearYou,
                   onSeeAll: () => context.go('/food'),
                 ),
                 const SizedBox(height: 10),
                 _HorizontalCatalog(items: restaurants, kind: 'restaurant'),
                 const SizedBox(height: 22),
                 SectionHeader(
-                  title: 'Nearby Tuition Jobs',
+                  title: AppStrings.nearbyTuitionJobs,
                   onSeeAll: () => context.push('/tuition'),
                 ),
                 const SizedBox(height: 10),
@@ -122,7 +123,7 @@ class HomeScreen extends ConsumerWidget {
                                 horizontal: 13,
                               ),
                             ),
-                            child: const Text('Apply'),
+                            child: const Text(AppStrings.apply),
                           ),
                         ),
                       ),
@@ -211,10 +212,10 @@ class _AiSearchBarState extends State<_AiSearchBar> {
             ],
           ),
           const Icon(
-                Icons.auto_awesome_rounded,
-                size: 18,
-                color: AppColors.purple,
-              ),
+            Icons.auto_awesome_rounded,
+            size: 18,
+            color: AppColors.purple,
+          ),
         ],
       ),
     ),
@@ -257,7 +258,7 @@ class _Greeting extends ConsumerWidget {
         ),
         BadgeLabel(
           university == null || university.isEmpty
-              ? 'StudentOS Member'
+              ? '${AppStrings.appName} Member'
               : '$university • Student',
         ),
       ],
@@ -428,7 +429,7 @@ class _TasksCard extends ConsumerWidget {
     child: Column(
       children: <Widget>[
         SectionHeader(
-          title: "Today's Tasks",
+          title: AppStrings.todaysTasks,
           onSeeAll: () => context.push('/tasks'),
         ),
         const SizedBox(height: 8),
@@ -509,38 +510,34 @@ class _FeatureHighlights extends StatelessWidget {
   const _FeatureHighlights();
 
   static const _items = <_FeatureItem>[
-    _FeatureItem('Student Discounts', '🎟️', <Color>[
-      Color(0xFF2563EB),
-      Color(0xFF7C3AED),
-    ], '/shop'),
-    _FeatureItem('Budget Planner', '💰', <Color>[
-      Color(0xFF34D399),
-      Color(0xFF0D9488),
+    _FeatureItem(AppStrings.budgetPlanner, '💰', <Color>[
+      AppColors.secondary,
+      AppColors.accent,
     ], '/budget'),
-    _FeatureItem('Career Hub', '💼', <Color>[
-      Color(0xFF8B5CF6),
-      Color(0xFF7C3AED),
+    _FeatureItem(AppStrings.taskPlanner, '📝', <Color>[
+      AppColors.pink,
+      AppColors.brand,
+    ], '/tasks'),
+    _FeatureItem(AppStrings.studentDeals, '🎟️', <Color>[
+      AppColors.brand,
+      AppColors.accent,
+    ], '/shop'),
+    _FeatureItem(AppStrings.careerHub, '💼', <Color>[
+      AppColors.brand,
+      AppColors.accent,
     ], '/career'),
-    _FeatureItem('Food Deals', '🍕', <Color>[
-      Color(0xFFFB923C),
-      Color(0xFFF43F5E),
+    _FeatureItem(AppStrings.foodDeals, '🍕', <Color>[
+      AppColors.warning,
+      AppColors.pink,
     ], '/food'),
-    _FeatureItem('Marketplace', '🛍️', <Color>[
-      Color(0xFFF472B6),
-      Color(0xFFD946EF),
+    _FeatureItem(AppStrings.marketplace, '🛍️', <Color>[
+      AppColors.pink,
+      AppColors.warning,
     ], '/marketplace'),
-    _FeatureItem('Tuition', '📚', <Color>[
-      Color(0xFF22D3EE),
-      Color(0xFF2563EB),
+    _FeatureItem(AppStrings.tuition, '📚', <Color>[
+      AppColors.secondary,
+      AppColors.brand,
     ], '/tuition'),
-    _FeatureItem('Buy & Sell', '🔄', <Color>[
-      Color(0xFFFBBF24),
-      Color(0xFFF97316),
-    ], '/buy-sell'),
-    _FeatureItem('Events', '🎉', <Color>[
-      Color(0xFFFB7185),
-      Color(0xFFEC4899),
-    ], '/events'),
   ];
 
   @override
@@ -552,7 +549,7 @@ class _FeatureHighlights extends StatelessWidget {
       primary: false,
       scrollDirection: Axis.horizontal,
       itemCount: _items.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 11),
+      separatorBuilder: (_, _) => const SizedBox(width: 11),
       itemBuilder: (context, index) {
         final item = _items[index];
         return Material(
@@ -629,7 +626,7 @@ class _HorizontalCatalog extends ConsumerWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final item = items[index];
           return SizedBox(

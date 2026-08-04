@@ -1,0 +1,105 @@
+abstract final class AppStrings {
+  static const appName = 'StudentOS';
+  static const student = 'Student';
+  static const notAdded = 'Not added';
+
+  static const career = 'Career';
+  static const shop = 'Shop';
+  static const home = 'Home';
+  static const food = 'Food';
+  static const more = 'More';
+
+  static const menu = 'Menu';
+  static const cart = 'Cart';
+  static const notifications = 'Notifications';
+  static const profile = 'Profile';
+  static const closeMenu = 'Close menu';
+  static const back = 'Back';
+  static const add = 'Add';
+  static const remove = 'Remove';
+  static const contact = 'Contact';
+  static const apply = 'Apply';
+  static const seeAll = 'See All';
+
+  static const budgetManager = 'Budget Manager';
+  static const taskManager = 'Task Manager';
+  static const todo = 'To-Do';
+  static const marketplace = 'Marketplace';
+  static const tuition = 'Tuition';
+  static const buySell = 'Buy & Sell';
+  static const events = 'Events';
+  static const settings = 'Settings';
+  static const helpCenter = 'Help Center';
+  static const privacy = 'Privacy';
+  static const about = 'About';
+  static const logout = 'Logout';
+  static const notes = 'Notes';
+  static const calculator = 'Calculator';
+  static const bookmarks = 'Bookmarks';
+  static const savedItems = 'Saved Items';
+  static const studentId = 'Student ID';
+  static const wishlist = 'Wishlist';
+  static const checkout = 'Checkout';
+  static const yourCart = 'Your Cart';
+  static const notFound = 'Not found';
+
+  static const budgetPlanner = 'Budget Planner';
+  static const taskPlanner = 'Task Planner';
+  static const studentDeals = 'Student Deals';
+  static const careerHub = 'Career Hub';
+  static const foodDeals = 'Food Deals';
+
+  static const exploreStudentOs = 'Explore StudentOS';
+  static const jobOpportunities = 'Job Opportunities';
+  static const skillDevelopment = 'Skill Development';
+  static const marketplacePicks = 'Marketplace Picks';
+  static const foodDealsNearYou = 'Food Deals Near You';
+  static const nearbyTuitionJobs = 'Nearby Tuition Jobs';
+  static const todaysTasks = "Today's Tasks";
+  static const spendingByCategory = 'Spending by Category';
+  static const recentTransactions = 'Recent Transactions';
+  static const discountedCourses = 'Discounted Courses';
+  static const featuredInternships = 'Featured Internships';
+
+  static const searchCoursesJobs = 'Search courses & jobs...';
+  static const searchProducts = 'Search products...';
+  static const searchDishes = 'Search dishes...';
+  static const searchHelp = 'Search help...';
+  static const askStudentOsSearch = 'Ask StudentOS AI or search...';
+  static const searchSubjectLocation = 'Search subject or location...';
+  static const addNewTask = 'Add a new task...';
+  static const description = 'Description';
+  static const amount = 'Amount (৳)';
+  static const campusExample = 'e.g. CUET campus';
+
+  static const addExpense = 'Add Expense';
+  static const addBudget = 'Add Budget';
+  static const deleteTask = 'Delete task';
+  static const sortProducts = 'Sort products';
+  static const darkMode = 'Dark Mode';
+  static const pushNotifications = 'Push notifications';
+  static const studentDealAlerts = 'Student deal alerts';
+  static const locationServices = 'Location services';
+  static const biometricLock = 'Biometric lock';
+  static const privacyPolicy = 'Privacy policy';
+  static const editProfile = 'Edit profile';
+  static const searchEmail = 'you@university.edu';
+  static const mobileExample = '1700000000';
+  static const campusPickup = 'Campus pickup';
+  static const noDeliveryFee = 'No delivery fee';
+  static const darkModeSubtitle = 'Use a dark color scheme';
+  static const all = 'All';
+  static const total = 'Total';
+  static const pending = 'Pending';
+  static const done = 'Done';
+  static const name = 'Name';
+  static const phone = 'Phone';
+  static const campus = 'Campus';
+  static const subtotal = 'Subtotal';
+  static const studentDiscount = 'Student discount';
+  static const delivery = 'Delivery';
+  static const contactDetails = 'Contact details';
+  static const deliveryOptions = 'Delivery options';
+  static const paymentMethod = 'Payment method';
+  static const orderSummary = 'Order summary';
+}

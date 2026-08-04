@@ -91,11 +91,7 @@ class ApiClient {
     }
 
     _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        error: true,
-      ),
+      LogInterceptor(requestBody: true, responseBody: true, error: true),
     );
   }
 
@@ -277,9 +273,7 @@ class ApiClient {
         error: e,
       );
     } catch (e) {
-      return ApiResponse<T>.failure(
-        message: e.toString(),
-      );
+      return ApiResponse<T>.failure(message: e.toString());
     }
   }
 
@@ -313,11 +307,13 @@ class ApiResponse<T> {
   factory ApiResponse.success({
     int? statusCode,
     dynamic data,
+    String? message,
     T Function(dynamic json)? fromJson,
   }) {
     return ApiResponse<T>._(
       statusCode: statusCode,
       data: data,
+      message: message,
       isSuccess: true,
       parsedData: fromJson != null ? fromJson(data) : null,
     );

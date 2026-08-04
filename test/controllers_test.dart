@@ -12,9 +12,9 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    expect(container.read(tasksProvider).first.completed, isTrue);
-    container.read(tasksProvider.notifier).toggle(1);
     expect(container.read(tasksProvider).first.completed, isFalse);
+    container.read(tasksProvider.notifier).toggle(1);
+    expect(container.read(tasksProvider).first.completed, isTrue);
 
     final before = container.read(tasksProvider).length;
     container.read(tasksProvider.notifier).add('Review lecture notes');
@@ -27,6 +27,20 @@ void main() {
 
     container.read(budgetProvider.notifier).updateBudget(9500);
     expect(container.read(budgetProvider).budget, 9500);
+  });
+
+  test('budget controller subtracts added expenses from balance', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final before = container.read(budgetProvider);
+    container
+        .read(budgetProvider.notifier)
+        .addExpense(label: 'Lunch', category: 'Food', amount: 300);
+    final after = container.read(budgetProvider);
+
+    expect(after.spent, before.spent + 300);
+    expect(after.remaining, before.remaining - 300);
   });
 
   test('favorites controller toggles ids', () {
@@ -48,7 +62,9 @@ void main() {
     addTearDown(container.dispose);
 
     expect(container.read(authProvider).isAuthenticated, isFalse);
-    container.read(authProvider.notifier).signIn(
+    await container
+        .read(authProvider.notifier)
+        .signIn(
           countryCode: '+880',
           mobile: '1700000000',
           password: 'studentos123',
@@ -57,5 +73,14 @@ void main() {
 
     container.read(authProvider.notifier).logout();
     expect(container.read(authProvider).isAuthenticated, isFalse);
+
+    await container
+        .read(authProvider.notifier)
+        .signIn(
+          countryCode: '+880',
+          mobile: '01700000000',
+          password: 'studentos123',
+        );
+    expect(container.read(authProvider).user?.name, 'Demo Student');
   });
 }
