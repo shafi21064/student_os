@@ -1,34 +1,57 @@
 {
   "project_info": {
-    "project_number": "175650710387",
-    "project_id": "studentos-f9c21",
-    "storage_bucket": "studentos-f9c21.firebasestorage.app"
+    "project_number": "562871577584",
+    "project_id": "studentos-47fac",
+    "storage_bucket": "studentos-47fac.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:175650710387:android:3810b58a10bb040ebe1b06",
+        "mobilesdk_app_id": "1:562871577584:android:c606aba2b3bad948150b35",
         "android_client_info": {
           "package_name": "com.thetork.studentos"
         }
       },
       "oauth_client": [
         {
-          "client_id": "175650710387-k3pi80ngo3hleommif4111dr2jb0n051.apps.googleusercontent.com",
+          "client_id": "562871577584-516crok9tm5361d7hqcj1k5v0ol89olt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thetork.studentos",
+            "certificate_hash": "e4a93e13e7d953da69543d40ef55d871fb327260"
+          }
+        },
+        {
+          "client_id": "562871577584-ocakirp1mm92qr3qppaggrd0q6qc7g6c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thetork.studentos",
+            "certificate_hash": "8489b6d1d8bbf026b353b5ec9c23c9ebbd319b3f"
+          }
+        },
+        {
+          "client_id": "562871577584-ufj2pqmleikmmpplvoun31dfurf99g99.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCOV_C6ElKR4wFSn4r3DicbNCZYVtC79r0"
+          "current_key": "AIzaSyDdnNMh68U-bRaBdUEDTHtgKgzsZt0-O04"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "175650710387-k3pi80ngo3hleommif4111dr2jb0n051.apps.googleusercontent.com",
+              "client_id": "562871577584-ufj2pqmleikmmpplvoun31dfurf99g99.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "562871577584-411taujqite6eqmq22d16rfn6mhp409o.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.thetork.studentos"
+              }
             }
           ]
         }

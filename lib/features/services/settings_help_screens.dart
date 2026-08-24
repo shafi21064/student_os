@@ -121,6 +121,19 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded),
               ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                onTap: () => context.push('/delete-account'),
+                leading: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                ),
+                title: const Text(
+                  AppStrings.deleteAccount,
+                  style: TextStyle(color: AppColors.danger),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+              ),
             ],
           ),
         ],
@@ -485,6 +498,70 @@ class LogoutScreen extends ConsumerWidget {
                   minimumSize: const Size.fromHeight(48),
                 ),
                 child: const Text('Logout'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => context.pop(),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class DeleteAccountScreen extends ConsumerWidget {
+  const DeleteAccountScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+    appBar: AppBar(title: const Text(AppStrings.deleteAccount)),
+    body: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: AppCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: .1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Delete your account?',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 7),
+              Text(
+                'This clears your local session and removes this account from the device.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () {
+                  ref.read(authProvider.notifier).deleteAccount();
+                  context.go('/auth');
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.danger,
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                child: const Text(AppStrings.deleteAccount),
               ),
               const SizedBox(height: 8),
               TextButton(

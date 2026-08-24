@@ -4,10 +4,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Read from dart-define for web
 const String baseUrlFromDefine = String.fromEnvironment('BASE_URL');
 const String baseUrlWebFromDefine = String.fromEnvironment('BASE_URL_WEB');
+const String googleClientIdFromDefine = String.fromEnvironment(
+  'GOOGLE_CLIENT_ID',
+);
 
 class EnvConfig {
   EnvConfig._();
-
 
   /// API base URL
   static String get baseUrl {
@@ -29,5 +31,16 @@ class EnvConfig {
     } else {
       return dotenv.env['BASE_URL_WEB'] ?? 'https://default-web-url.com';
     }
+  }
+
+  static String get googleClientId {
+    if (kIsWeb) return _cleanEnvValue(googleClientIdFromDefine);
+    return _cleanEnvValue(dotenv.env['GOOGLE_CLIENT_ID'] ?? '');
+  }
+
+  static String _cleanEnvValue(String value) {
+    final trimmed = value.trim();
+    if (trimmed == '""' || trimmed == "''") return '';
+    return trimmed;
   }
 }

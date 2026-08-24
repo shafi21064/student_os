@@ -50,20 +50,18 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCOV_C6ElKR4wFSn4r3DicbNCZYVtC79r0',
-    appId: '1:175650710387:android:3810b58a10bb040ebe1b06',
-    messagingSenderId: '175650710387',
-    projectId: 'studentos-f9c21',
-    storageBucket: 'studentos-f9c21.firebasestorage.app',
+    apiKey: 'AIzaSyDdnNMh68U-bRaBdUEDTHtgKgzsZt0-O04',
+    appId: '1:562871577584:android:c606aba2b3bad948150b35',
+    messagingSenderId: '562871577584',
+    projectId: 'studentos-47fac',
+    storageBucket: 'studentos-47fac.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDILjR2xMsF9hp2xjGId9BNkc-Jc6h0aT4',
-    appId: '1:175650710387:ios:f3cbad4e82177c1fbe1b06',
-    messagingSenderId: '175650710387',
-    projectId: 'studentos-f9c21',
-    storageBucket: 'studentos-f9c21.firebasestorage.app',
-    iosClientId: '175650710387-js09g5ulcaicer3d502m8mhi38uc9oms.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDd57zrpmLYvKWAbRhD61X1HY9pxfBo84c',
+    appId: '1:562871577584:ios:e508e8dead71d784150b35',
+    messagingSenderId: '562871577584',
+    projectId: 'studentos-47fac',
+    storageBucket: 'studentos-47fac.firebasestorage.app',
     iosBundleId: 'com.thetork.studentos',
   );
 }

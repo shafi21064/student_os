@@ -16,11 +16,28 @@ import 'package:studentos/state/budget_controller.dart';
 import 'package:studentos/state/favorites_controller.dart';
 import 'package:studentos/state/tasks_controller.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_refreshHomeData);
+  }
+
+  void _refreshHomeData() {
+    if (!mounted) return;
+    unawaited(ref.read(budgetProvider.notifier).fetchCurrentBudget());
+    unawaited(ref.read(tasksProvider.notifier).fetchTodos());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tasks = ref.watch(tasksProvider);
     final budget = ref.watch(budgetProvider);
     final completed = tasks.where((task) => task.completed).length;
@@ -438,7 +455,8 @@ class _TasksCard extends ConsumerWidget {
             .map(
               (task) => InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => ref.read(tasksProvider.notifier).toggle(task.id),
+                onTap: () =>
+                    ref.read(tasksProvider.notifier).updateTodoStatus(task.id),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 7),
                   child: Row(

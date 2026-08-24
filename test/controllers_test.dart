@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,13 +9,15 @@ import 'package:studentos/state/favorites_controller.dart';
 import 'package:studentos/state/tasks_controller.dart';
 
 void main() {
-  test('task controller toggles and adds tasks immutably', () {
+  setUpAll(() async {
+    await dotenv.load(fileName: '.env', isOptional: true);
+  });
+
+  test('task controller starts empty and adds tasks immutably', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
-    expect(container.read(tasksProvider).first.completed, isFalse);
-    container.read(tasksProvider.notifier).toggle(1);
-    expect(container.read(tasksProvider).first.completed, isTrue);
+    expect(container.read(tasksProvider), isEmpty);
 
     final before = container.read(tasksProvider).length;
     container.read(tasksProvider.notifier).add('Review lecture notes');
@@ -53,7 +56,7 @@ void main() {
     expect(container.read(favoritesProvider), isNot(contains('ipad-air-m2')));
   });
 
-  test('auth controller creates and clears a local demo session', () async {
+  test('auth controller does not create a local demo session', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final preferences = await SharedPreferences.getInstance();
     final container = ProviderContainer(
@@ -69,7 +72,7 @@ void main() {
           mobile: '1700000000',
           password: 'studentos123',
         );
-    expect(container.read(authProvider).user?.name, 'Demo Student');
+    expect(container.read(authProvider).isAuthenticated, isFalse);
 
     container.read(authProvider.notifier).logout();
     expect(container.read(authProvider).isAuthenticated, isFalse);
@@ -81,6 +84,6 @@ void main() {
           mobile: '01700000000',
           password: 'studentos123',
         );
-    expect(container.read(authProvider).user?.name, 'Demo Student');
+    expect(container.read(authProvider).isAuthenticated, isFalse);
   });
 }

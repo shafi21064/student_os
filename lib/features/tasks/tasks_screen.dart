@@ -18,6 +18,18 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   var _filter = _TaskFilter.all;
 
   @override
+  void initState() {
+    super.initState();
+    Future.microtask(() async {
+      final error = await ref.read(tasksProvider.notifier).fetchTodos();
+      if (!mounted || error == null) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    });
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
@@ -184,9 +196,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                         children: <Widget>[
                           _TaskRow(
                             task: task,
-                            onToggle: () => ref
-                                .read(tasksProvider.notifier)
-                                .toggle(task.id),
+                            onToggle: () => _toggleTask(task.id),
                             onRemove: () => ref
                                 .read(tasksProvider.notifier)
                                 .remove(task.id),
@@ -203,9 +213,24 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  void _addTask() {
-    ref.read(tasksProvider.notifier).add(_controller.text);
+  Future<void> _addTask() async {
+    final error = await ref
+        .read(tasksProvider.notifier)
+        .storeTodo(_controller.text);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
     _controller.clear();
+  }
+
+  Future<void> _toggleTask(int id) async {
+    final error = await ref.read(tasksProvider.notifier).updateTodoStatus(id);
+    if (!mounted || error == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
   }
 }
 

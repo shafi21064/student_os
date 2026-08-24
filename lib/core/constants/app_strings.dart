@@ -33,6 +33,7 @@ abstract final class AppStrings {
   static const privacy = 'Privacy';
   static const about = 'About';
   static const logout = 'Logout';
+  static const deleteAccount = 'Delete Account';
   static const notes = 'Notes';
   static const calculator = 'Calculator';
   static const bookmarks = 'Bookmarks';

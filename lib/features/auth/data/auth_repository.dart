@@ -24,14 +24,22 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
-  Future<ApiResponse<AuthUser>> signUpWithEmail({
+  Future<ApiResponse<void>> sendSignUpOtp({required String phone});
+  Future<ApiResponse<AuthUser>> verifySignUpOtp({
+    required String phone,
+    required String name,
+    required String otp,
+    required String password,
+  });
+  Future<ApiResponse<void>> changePassword({
+    required String password,
+    required String confirmPassword,
+  });
+  Future<ApiResponse<AuthUser>> socialLogin({
     required String name,
     required String email,
-    required String password,
-    required String institute,
-  });
-  Future<ApiResponse<AuthUser>> getSocialLoginResponse({
     required String provider,
+    required String socialProvider,
     required String accessToken,
   });
 }
@@ -47,32 +55,27 @@ class SharedPreferencesAuthRepository implements AuthRepository {
 
   static const _sessionKey = 'studentos.auth.session';
   static const _usersKey = 'studentos.auth.users';
-
-  static const demoAccount = AuthUser(
-    id: 'demo-account',
-    name: 'Demo Student',
-    mobile: '8801700000000',
-    password: 'studentos123',
-    university: 'CUET',
-    email: 'demo@studentos.app',
-    verified: true,
-    provider: AuthProviderType.email,
-  );
+  static const _isLoggedInKey = 'isLoggedIn';
 
   @override
   AuthSnapshot load() {
     final users = _decodeUsers(_preferences.getString(_usersKey));
-    final resolvedUsers = users.isEmpty ? <AuthUser>[demoAccount] : users;
     final user = _decodeUser(_preferences.getString(_sessionKey));
-    return AuthSnapshot(user: user, users: resolvedUsers);
+    final sessionUser = user?.authToken.isNotEmpty == true ? user : null;
+    if (sessionUser != null) {
+      ApiClient.instance.setAuthToken(sessionUser.authToken);
+    }
+    return AuthSnapshot(user: sessionUser, users: users);
   }
 
   @override
   void saveUser(AuthUser? user) {
     if (user == null) {
       unawaited(_preferences.remove(_sessionKey));
+      unawaited(_preferences.setBool(_isLoggedInKey, false));
       return;
     }
+    unawaited(_preferences.setBool(_isLoggedInKey, true));
     unawaited(_preferences.setString(_sessionKey, jsonEncode(user.toJson())));
   }
 
@@ -123,33 +126,60 @@ class SharedPreferencesAuthRepository implements AuthRepository {
       );
     }
 
-    final token = data['access_token']?.toString();
+    final token = _tokenFromAuthData(data);
     if (token != null && token.isNotEmpty) {
       ApiClient.instance.setAuthToken(token);
     }
 
     return ApiResponse<AuthUser>.success(
       statusCode: response.statusCode,
-      data: _authUserFromAuthData(data, password),
+      data: _authUserFromAuthData(data, password, authToken: token ?? ''),
       message: body['message']?.toString(),
     );
   }
 
   @override
-  Future<ApiResponse<AuthUser>> signUpWithEmail({
+  Future<ApiResponse<void>> sendSignUpOtp({required String phone}) async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      Api.sendSignUpOtp,
+      data: FormData.fromMap({'phone': phone}),
+      options: Options(headers: {'accept': '*/*'}),
+    );
+
+    if (!response.isSuccess) {
+      return ApiResponse<void>.failure(
+        statusCode: response.statusCode,
+        message: response.message,
+        error: response.error,
+      );
+    }
+
+    final body = response.data;
+    if (body is Map<String, dynamic> && body['result'] == true) {
+      return ApiResponse<void>.success(
+        statusCode: response.statusCode,
+        message: body['message']?.toString(),
+      );
+    }
+
+    return ApiResponse<void>.failure(
+      statusCode: response.statusCode,
+      message: body is Map<String, dynamic>
+          ? body['message']?.toString()
+          : 'OTP send failed.',
+    );
+  }
+
+  @override
+  Future<ApiResponse<AuthUser>> verifySignUpOtp({
     required String name,
-    required String email,
+    required String phone,
+    required String otp,
     required String password,
-    required String institute,
   }) async {
     final response = await ApiClient.instance.post<Map<String, dynamic>>(
-      Api.signupWithEmail,
-      data: FormData.fromMap({
-        'name': name,
-        'email': email,
-        'password': password,
-        'institute': institute,
-      }),
+      Api.verifySignUpOtp,
+      data: FormData.fromMap({'name': name, 'phone': phone, 'otp': otp}),
       options: Options(headers: {'accept': '*/*'}),
     );
 
@@ -167,7 +197,7 @@ class SharedPreferencesAuthRepository implements AuthRepository {
         statusCode: response.statusCode,
         message: body is Map<String, dynamic>
             ? body['message']?.toString()
-            : 'Registration failed.',
+            : 'OTP verification failed.',
       );
     }
 
@@ -175,19 +205,57 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     if (data is! Map<String, dynamic>) {
       return ApiResponse<AuthUser>.failure(
         statusCode: response.statusCode,
-        message: body['message']?.toString() ?? 'Registration failed.',
+        message: body['message']?.toString() ?? 'OTP verification failed.',
       );
     }
 
-    final token = data['access_token']?.toString();
+    final token = _tokenFromAuthData(data);
     if (token != null && token.isNotEmpty) {
       ApiClient.instance.setAuthToken(token);
     }
 
     return ApiResponse<AuthUser>.success(
       statusCode: response.statusCode,
-      data: _authUserFromAuthData(data, password, institute: institute),
+      data: _authUserFromAuthData(data, password, authToken: token ?? ''),
       message: body['message']?.toString(),
+    );
+  }
+
+  @override
+  Future<ApiResponse<void>> changePassword({
+    required String password,
+    required String confirmPassword,
+  }) async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      Api.changePassword,
+      data: FormData.fromMap({
+        'password': password,
+        'confirm_password': confirmPassword,
+      }),
+      options: Options(headers: {'accept': '*/*'}),
+    );
+
+    if (!response.isSuccess) {
+      return ApiResponse<void>.failure(
+        statusCode: response.statusCode,
+        message: response.message,
+        error: response.error,
+      );
+    }
+
+    final body = response.data;
+    if (body is Map<String, dynamic> && body['result'] == true) {
+      return ApiResponse<void>.success(
+        statusCode: response.statusCode,
+        message: body['message']?.toString(),
+      );
+    }
+
+    return ApiResponse<void>.failure(
+      statusCode: response.statusCode,
+      message: body is Map<String, dynamic>
+          ? body['message']?.toString()
+          : 'Password setup failed.',
     );
   }
 
@@ -226,17 +294,23 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     Map<String, dynamic> data,
     String password, {
     String institute = '',
+    String authToken = '',
+    AuthProviderType provider = AuthProviderType.email,
+    String fallbackName = 'Student',
+    String fallbackEmail = '',
+    String fallbackId = '',
   }) {
     final userJson = data['user'];
     final user = userJson is Map<String, dynamic>
         ? userJson
         : const <String, dynamic>{};
-    final id = user['id']?.toString() ?? data['user_id']?.toString() ?? '';
+    final id =
+        user['id']?.toString() ?? data['user_id']?.toString() ?? fallbackId;
     final name = _firstNonBlank(
       user['name'],
       user['full_name'],
       user['first_name'],
-      'Student',
+      fallbackName,
     );
 
     return AuthUser(
@@ -245,9 +319,16 @@ class SharedPreferencesAuthRepository implements AuthRepository {
       mobile: user['phone']?.toString() ?? '',
       password: password,
       university: institute,
-      email: user['email']?.toString() ?? '',
+      email: user['email']?.toString() ?? fallbackEmail,
+      authToken: authToken,
+      avatarUrl: _firstNonBlank(
+        user['avatar'],
+        user['avatar_url'],
+        user['profile_photo_url'],
+        '',
+      ),
       verified: user['is_active'] == 1 || user['email_verified_at'] != null,
-      provider: AuthProviderType.email,
+      provider: provider,
     );
   }
 
@@ -264,14 +345,80 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     return fallback;
   }
 
+  String? _tokenFromAuthData(Map<String, dynamic> data) {
+    final token = _firstNonBlank(
+      data['access_token'],
+      data['token'],
+      data['plain_text_token'],
+      '',
+    );
+    return token.isEmpty ? null : token.replaceFirst(RegExp(r'^Bearer\s+'), '');
+  }
+
   @override
-  Future<ApiResponse<AuthUser>> getSocialLoginResponse({
-    String? provider,
-    String accessToken = "",
+  Future<ApiResponse<AuthUser>> socialLogin({
+    required String name,
+    required String email,
+    required String provider,
+    required String socialProvider,
+    required String accessToken,
   }) async {
-    return ApiClient.instance.post<AuthUser>(
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
       Api.socialLogin,
-      data: {"provider": provider, "access_token": accessToken},
+      data: <String, String>{
+        'provider': socialProvider,
+        'id_token': accessToken,
+      },
+    );
+
+    if (!response.isSuccess) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: response.message,
+        error: response.error,
+      );
+    }
+
+    final body = response.data;
+    if (body is! Map<String, dynamic> || body['result'] != true) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body is Map<String, dynamic>
+            ? body['message']?.toString()
+            : 'Social login failed.',
+      );
+    }
+
+    final data = body['data'];
+    if (data is! Map<String, dynamic>) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body['message']?.toString() ?? 'Social login failed.',
+      );
+    }
+
+    final token = _tokenFromAuthData(data);
+    if (token != null && token.isNotEmpty) {
+      ApiClient.instance.setAuthToken(token);
+    }
+
+    final authProvider = AuthProviderType.values.firstWhere(
+      (value) => value.name == socialProvider,
+      orElse: () => AuthProviderType.email,
+    );
+
+    return ApiResponse<AuthUser>.success(
+      statusCode: response.statusCode,
+      data: _authUserFromAuthData(
+        data,
+        '',
+        authToken: token ?? '',
+        provider: authProvider,
+        fallbackName: name.trim().isEmpty ? 'Student' : name,
+        fallbackEmail: email,
+        fallbackId: provider,
+      ),
+      message: body['message']?.toString(),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:studentos/core/config/env_config.dart';
 
 // ---------------------------------------------------------------------------
@@ -65,6 +66,7 @@ class ApiClient {
   static ApiClient get instance => _instance;
 
   late final Dio _dio;
+  bool _initialized = false;
 
   /// Initialize the Dio instance with default configuration.
   /// Call this once during app startup.
@@ -91,8 +93,36 @@ class ApiClient {
     }
 
     _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final token = _authToken;
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          final auth = options.headers['Authorization'];
+          debugPrint(
+            '[ApiClient] ${options.method} ${options.uri} '
+            'auth=${_redactAuth(auth)} contentType=${options.contentType}',
+          );
+          debugPrint('[ApiClient] requestHeaders=${_safeHeaders(options)}');
+          final data = options.data;
+          if (data is FormData) {
+            debugPrint('[ApiClient] formFields=${_safeFormFields(data)}');
+          } else if (data != null) {
+            debugPrint('[ApiClient] body=$data');
+          }
+          handler.next(options);
+        },
+      ),
+    );
+
+    _dio.interceptors.add(
       LogInterceptor(requestBody: true, responseBody: true, error: true),
     );
+    _initialized = true;
+    if (_authToken != null) {
+      _dio.options.headers['Authorization'] = 'Bearer $_authToken';
+    }
   }
 
   // ---------------------------------------------------------------
@@ -104,15 +134,55 @@ class ApiClient {
   String? get authToken => _authToken;
 
   void setAuthToken(String? token) {
-    _authToken = token;
-    if (token != null) {
-      _dio.options.headers['Authorization'] = 'Bearer $token';
+    _authToken = _normalizeToken(token);
+    debugPrint('[ApiClient] setAuthToken ${_redactAuth(token)}');
+    if (!_initialized) return;
+    if (_authToken != null) {
+      _dio.options.headers['Authorization'] = 'Bearer $_authToken';
     } else {
       _dio.options.headers.remove('Authorization');
     }
   }
 
   void clearAuthToken() => setAuthToken(null);
+
+  String _redactAuth(Object? auth) {
+    final value = auth?.toString() ?? '';
+    if (value.isEmpty) return 'missing';
+    final token = value.replaceFirst(RegExp(r'^Bearer\s+'), '');
+    if (token.length <= 8) return 'present(length=${token.length})';
+    return 'present(${token.substring(0, 4)}...${token.substring(token.length - 4)}, length=${token.length})';
+  }
+
+  String? _normalizeToken(String? token) {
+    final value = token?.trim() ?? '';
+    if (value.isEmpty) return null;
+    return value.replaceFirst(RegExp(r'^Bearer\s+', caseSensitive: false), '');
+  }
+
+  Map<String, String> _safeFormFields(FormData data) {
+    return Map<String, String>.fromEntries(
+      data.fields.map((entry) {
+        final key = entry.key.toLowerCase();
+        final value = key.contains('password') || key.contains('token')
+            ? '***'
+            : entry.value;
+        return MapEntry(entry.key, value);
+      }),
+    );
+  }
+
+  Map<String, String> _safeHeaders(RequestOptions options) {
+    return Map<String, String>.fromEntries(
+      options.headers.entries.map((entry) {
+        final key = entry.key;
+        final value = key.toLowerCase() == 'authorization'
+            ? _redactAuth(entry.value)
+            : entry.value?.toString() ?? '';
+        return MapEntry(key, value);
+      }),
+    );
+  }
 
   // ---------------------------------------------------------------
   // Generic HTTP methods

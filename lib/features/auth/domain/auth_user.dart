@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-enum AuthProviderType { email, google }
+enum AuthProviderType { email, google, apple, facebook }
 
 @immutable
 class AuthUser {
@@ -13,6 +13,8 @@ class AuthUser {
     required this.verified,
     required this.provider,
     this.email = '',
+    this.authToken = '',
+    this.avatarUrl = '',
   });
 
   factory AuthUser.fromJson(Map<String, Object?> json) => AuthUser(
@@ -22,6 +24,8 @@ class AuthUser {
     password: json['password'] as String? ?? '',
     university: json['university'] as String? ?? '',
     email: json['email'] as String? ?? '',
+    authToken: json['authToken'] as String? ?? '',
+    avatarUrl: json['avatarUrl'] as String? ?? '',
     verified: json['verified'] as bool? ?? false,
     provider: AuthProviderType.values.firstWhere(
       (value) => value.name == json['provider'],
@@ -38,6 +42,8 @@ class AuthUser {
   final String password;
   final String university;
   final String email;
+  final String authToken;
+  final String avatarUrl;
   final bool verified;
   final AuthProviderType provider;
 
@@ -65,6 +71,8 @@ class AuthUser {
     String? password,
     String? university,
     String? email,
+    String? authToken,
+    String? avatarUrl,
     bool? verified,
   }) => AuthUser(
     id: id,
@@ -73,6 +81,8 @@ class AuthUser {
     password: password ?? this.password,
     university: university ?? this.university,
     email: email ?? this.email,
+    authToken: authToken ?? this.authToken,
+    avatarUrl: avatarUrl ?? this.avatarUrl,
     verified: verified ?? this.verified,
     provider: provider,
   );
@@ -84,6 +94,8 @@ class AuthUser {
     'password': password,
     'university': university,
     'email': email,
+    'authToken': authToken,
+    'avatarUrl': avatarUrl,
     'verified': verified,
     'provider': provider.name,
   };
@@ -94,14 +106,12 @@ class PendingSignUp {
   const PendingSignUp({
     required this.name,
     required this.mobile,
+    required this.phone,
     required this.password,
-    required this.university,
-    required this.verificationCode,
   });
 
   final String name;
   final String mobile;
+  final String phone;
   final String password;
-  final String university;
-  final String verificationCode;
 }

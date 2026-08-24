@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +9,9 @@ import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/common_widgets.dart';
 import 'package:studentos/features/auth/data/auth_controller.dart';
 import 'package:studentos/features/auth/domain/auth_user.dart';
+import 'package:studentos/state/budget_controller.dart';
 import 'package:studentos/state/favorites_controller.dart';
+import 'package:studentos/state/tasks_controller.dart';
 
 class StudentOsShell extends ConsumerStatefulWidget {
   const StudentOsShell({required this.navigationShell, super.key});
@@ -55,6 +59,10 @@ class _StudentOsShellState extends ConsumerState<StudentOsShell> {
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
     );
+    if (index == 2) {
+      unawaited(ref.read(budgetProvider.notifier).fetchCurrentBudget());
+      unawaited(ref.read(tasksProvider.notifier).fetchTodos());
+    }
   }
 
   @override
@@ -460,7 +468,7 @@ class _StudentSidebarDrawer extends StatelessWidget {
                                 item.label,
                                 style: const TextStyle(
                                   color: AppColors.gray800,
-                                  fontSize: 13,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

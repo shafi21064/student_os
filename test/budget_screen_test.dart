@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/features/budget/budget_screen.dart';
 
 void main() {
-  testWidgets('adding an expense updates the visible budget balance', (
+  setUpAll(() async {
+    await dotenv.load(fileName: '.env', isOptional: true);
+  });
+
+  testWidgets('adding an expense asks for a saved budget first', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -21,6 +26,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('৳2500'), findsOneWidget);
+    expect(find.text('Please add a budget first.'), findsOneWidget);
   });
 }

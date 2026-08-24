@@ -3,21 +3,23 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>175650710387-js09g5ulcaicer3d502m8mhi38uc9oms.apps.googleusercontent.com</string>
+	<string>562871577584-411taujqite6eqmq22d16rfn6mhp409o.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.175650710387-js09g5ulcaicer3d502m8mhi38uc9oms</string>
+	<string>com.googleusercontent.apps.562871577584-411taujqite6eqmq22d16rfn6mhp409o</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>562871577584-516crok9tm5361d7hqcj1k5v0ol89olt.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
-	<string>AIzaSyDILjR2xMsF9hp2xjGId9BNkc-Jc6h0aT4</string>
+	<string>AIzaSyDd57zrpmLYvKWAbRhD61X1HY9pxfBo84c</string>
 	<key>GCM_SENDER_ID</key>
-	<string>175650710387</string>
+	<string>562871577584</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.thetork.studentos</string>
 	<key>PROJECT_ID</key>
-	<string>studentos-f9c21</string>
+	<string>studentos-47fac</string>
 	<key>STORAGE_BUCKET</key>
-	<string>studentos-f9c21.firebasestorage.app</string>
+	<string>studentos-47fac.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:175650710387:ios:f3cbad4e82177c1fbe1b06</string>
+	<string>1:562871577584:ios:e508e8dead71d784150b35</string>
 </dict>
 </plist>

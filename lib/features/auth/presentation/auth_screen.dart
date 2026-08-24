@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:studentos/core/constants/app_strings.dart';
@@ -21,7 +22,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _universityController = TextEditingController();
   final _verificationController = TextEditingController();
 
   _AuthMode _mode = _AuthMode.signIn;
@@ -55,7 +55,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     _mobileController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _universityController.dispose();
     _verificationController.dispose();
     super.dispose();
   }
@@ -170,7 +169,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             if (verificationMode)
                               _verificationForm(controller)
                             else if (_mode == _AuthMode.signIn)
-                              _signInForm(controller)
+                              _signInForm(controller, auth)
                             else
                               _signUpForm(controller),
                           ],
@@ -187,7 +186,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     );
   }
 
-  Widget _signInForm(AuthController controller) => Column(
+  Widget _signInForm(AuthController controller, AuthState auth) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
       _mobileField(),
@@ -213,7 +212,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       ),
       const SizedBox(height: 16),
       FilledButton(
-        onPressed: () => _signIn(controller),
+        onPressed: auth.isLoading ? null : () => _signIn(controller),
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.brand,
           minimumSize: const Size.fromHeight(52),
@@ -221,11 +220,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             borderRadius: BorderRadius.circular(17),
           ),
         ),
-        child: const Text('Sign in'),
+        child: auth.isLoading
+            ? const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Text('Sign in'),
       ),
       const SizedBox(height: 12),
       OutlinedButton.icon(
-        onPressed: controller.onPressedGoogleLogin,
+        onPressed: auth.isLoading ? null : controller.onPressedGoogleLogin,
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(50),
           shape: RoundedRectangleBorder(
@@ -235,6 +239,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         icon: const _GoogleMark(),
         label: const Text('Continue with Google'),
       ),
+      if (!_isAndroid) ...<Widget>[
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: auth.isLoading ? null : controller.onPressedAppleLogin,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size.fromHeight(50),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(17),
+            ),
+          ),
+          icon: const Icon(Icons.apple_rounded, size: 20),
+          label: const Text('Continue with Apple'),
+        ),
+      ],
       const SizedBox(height: 12),
       // Text(
       //   'Demo account: +880 1700000000  •  studentos123',
@@ -255,6 +273,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       ),
     ],
   );
+
+  bool get _isAndroid =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   Widget _signUpForm(AuthController controller) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -279,15 +300,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       ),
       const SizedBox(height: 12),
       _mobileField(),
-      const SizedBox(height: 12),
-      TextFormField(
-        controller: _universityController,
-        textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(
-          labelText: 'University',
-          prefixIcon: Icon(Icons.school_outlined),
-        ),
-      ),
       const SizedBox(height: 12),
       TextFormField(
         controller: _passwordController,
@@ -378,7 +390,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           borderRadius: BorderRadius.circular(17),
         ),
         child: FilledButton(
-          onPressed: () => controller.verify(_verificationController.text),
+          onPressed: () =>
+              unawaited(controller.verify(_verificationController.text)),
           style: FilledButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
@@ -460,7 +473,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         mobile: _mobileController.text,
         password: _passwordController.text,
         confirmPassword: _confirmPasswordController.text,
-        university: _universityController.text,
       ),
     );
   }
@@ -474,7 +486,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _mobileController.clear();
       _passwordController.clear();
       _confirmPasswordController.clear();
-      _universityController.clear();
       _verificationController.clear();
       _showPassword = false;
       _showConfirmPassword = false;

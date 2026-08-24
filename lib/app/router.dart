@@ -27,6 +27,8 @@ final _homeNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'home');
 final _foodNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'food');
 final _moreNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'more');
 
+late GoRouter notificationRouter;
+
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _RouterRefreshNotifier(ref);
   final router = GoRouter(
@@ -36,6 +38,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final authenticated = ref.read(authProvider).isAuthenticated;
       final onAuthRoute = state.matchedLocation == '/auth';
+      final onNotFoundRoute = state.matchedLocation == '/404';
+      if (!authenticated && onNotFoundRoute) return null;
       if (!authenticated && !onAuthRoute) return '/auth';
       if (authenticated && onAuthRoute) return '/home';
       return null;
@@ -50,6 +54,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: '/auth',
         builder: (context, state) => const AuthScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/404',
+        builder: (context, state) => const NotFoundScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -239,6 +248,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
+        path: '/delete-account',
+        builder: (context, state) => const DeleteAccountScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/details/:kind/:id',
         builder: (context, state) => DetailScreen(
           kind: state.pathParameters['kind']!,
@@ -246,11 +260,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      appBar: AppBar(title: const Text('StudentOS')),
-      body: Center(child: Text('Route not found: ${state.uri}')),
-    ),
+    errorBuilder: (context, state) => const NotFoundScreen(),
   );
+  notificationRouter = router;
   ref.onDispose(() {
     refreshNotifier.dispose();
     router.dispose();
@@ -261,5 +273,43 @@ final routerProvider = Provider<GoRouter>((ref) {
 class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
     ref.listen<AuthState>(authProvider, (previous, next) => notifyListeners());
+  }
+}
+
+class NotFoundScreen extends StatelessWidget {
+  const NotFoundScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('StudentOS')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Page not found',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'The requested route is not available.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => context.go('/home'),
+                child: const Text('Go home'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
