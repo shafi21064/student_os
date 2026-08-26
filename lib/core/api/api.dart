@@ -67,6 +67,10 @@ class Api {
 
   ///store
   static String allProduct = "$baseUrl/api/v1/products";
+  static String productCategories =
+      "$baseUrl/api/v1/product-domain/product-categories";
+  static String productDomainProducts =
+      "$baseUrl/api/v1/product-domain/products";
   static String productTopCategories = "$baseUrl/api/v1/product-top-categories";
   static String productDetails = "$baseUrl/api/v1/products/";
   static String storeComment = "$baseUrl/api/v1/product-reviews";

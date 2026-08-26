@@ -28,6 +28,8 @@ class CatalogItem {
     required this.subtitle,
     required this.emoji,
     required this.price,
+    this.slug,
+    this.imageUrl,
     this.originalPrice,
     this.badge,
     this.rating,
@@ -43,6 +45,8 @@ class CatalogItem {
   final String subtitle;
   final String emoji;
   final String price;
+  final String? slug;
+  final String? imageUrl;
   final String? originalPrice;
   final String? badge;
   final double? rating;
