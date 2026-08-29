@@ -69,7 +69,7 @@ void main() {
         .read(authProvider.notifier)
         .signIn(
           countryCode: '+880',
-          mobile: '1700000000',
+          mobile: '01700000000',
           password: 'studentos123',
         );
     expect(container.read(authProvider).isAuthenticated, isFalse);

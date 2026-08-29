@@ -311,13 +311,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             onPressed: () => _startSignUp(controller),
           ),
           const SizedBox(height: 20),
-          const _DividerLabel('Or Register With'),
-          const SizedBox(height: 12),
-          _SocialButton(
-            text: 'Signup with Google',
-            icon: const _GoogleMark(),
-            onPressed: auth.isLoading ? null : controller.onPressedGoogleLogin,
-          ),
+          // const _DividerLabel('Or Register With'),
+          // const SizedBox(height: 12),
+          // _SocialButton(
+          //   text: 'Signup with Google',
+          //   icon: const _GoogleMark(),
+          //   onPressed: auth.isLoading ? null : controller.onPressedGoogleLogin,
+          // ),
           if (!_isAndroid) ...<Widget>[
             const SizedBox(height: 12),
             _SocialButton(
@@ -546,13 +546,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   String? _validatePhone(String? value) {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return 'Phone is required.';
-    if (_countryCode != '+880') {
-      return text.replaceAll(RegExp(r'\D'), '').length >= 6
-          ? null
-          : 'Invalid Phone';
-    }
-    final phone = RegExp(r'^(\+88|0088)?(01)[3456789](\d){8}$');
-    return phone.hasMatch(text) ? null : 'Invalid Phone';
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    final phone = digits.startsWith('880')
+        ? '0${digits.substring(3)}'
+        : digits.startsWith('0')
+        ? digits
+        : '0$digits';
+    return RegExp(r'^01[3456789]\d{8}$').hasMatch(phone)
+        ? null
+        : 'Invalid Phone';
   }
 
   String? _validatePassword(String? value) {
@@ -1047,14 +1049,6 @@ class _Feedback extends StatelessWidget {
       ),
     );
   }
-}
-
-class _GoogleMark extends StatelessWidget {
-  const _GoogleMark();
-
-  @override
-  Widget build(BuildContext context) =>
-      Image.asset('assets/icons/google.png', width: 18, height: 18);
 }
 
 class _CountryCode {

@@ -783,9 +783,13 @@ class AuthController extends Notifier<AuthState> {
     final trimmed = value.trim();
     if (trimmed.contains('@')) return trimmed;
     final digits = _normalizeMobile(trimmed);
-    if (digits.isEmpty || digits.startsWith('0')) return digits;
-    if (digits.startsWith('880')) return '0${digits.substring(3)}';
-    return '0$digits';
+    if (digits.isEmpty) return '';
+    final phone = digits.startsWith('880')
+        ? '0${digits.substring(3)}'
+        : digits.startsWith('0')
+        ? digits
+        : '0$digits';
+    return RegExp(r'^01[3456789]\d{8}$').hasMatch(phone) ? phone : '';
   }
 
   bool _validOtp(String code) => RegExp(r'^\d{4,6}$').hasMatch(code.trim());

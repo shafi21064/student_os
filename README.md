@@ -52,7 +52,7 @@ flutter run
 
 ```text
 Country code: +880
-Mobile:       1700000000
+Mobile:       01700000000
 Password:     studentos123
 ```
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -150,7 +151,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   alignment: Alignment.center,
                   clipBehavior: Clip.antiAlias,
-                  child: user?.avatarUrl.isEmpty == false
+                  child: _avatarPath != null
+                      ? Image.file(
+                          File(_avatarPath!),
+                          width: 112,
+                          height: 112,
+                          fit: BoxFit.cover,
+                        )
+                      : user?.avatarUrl.isEmpty == false
                       ? Image.network(
                           user!.avatarUrl,
                           width: 112,
@@ -239,26 +247,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   controller: _phone,
                   editable: false,
                 ),
-                const Divider(height: 24),
-                _ProfileField(
-                  icon: Icons.school_outlined,
-                  label: 'University',
-                  controller: _university,
-                  editable: _editing,
-                  emptyValue: 'Not added',
-                ),
               ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          AppCard(
-            child: _PasswordSection(
-              hasPassword: user?.hasPassword == true,
-              loading: auth.isLoading,
-              oldPassword: _oldPassword,
-              newPassword: _newPassword,
-              confirmPassword: _confirmPassword,
-              onSave: () => unawaited(_savePassword()),
             ),
           ),
           const SizedBox(height: 14),
@@ -297,6 +286,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   value: 'STU-2001001',
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          AppCard(
+            child: _PasswordSection(
+              hasPassword: user?.hasPassword == true,
+              loading: auth.isLoading,
+              oldPassword: _oldPassword,
+              newPassword: _newPassword,
+              confirmPassword: _confirmPassword,
+              onSave: () => unawaited(_savePassword()),
             ),
           ),
           const SizedBox(height: 14),
@@ -472,20 +472,24 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
       Icon(icon, size: 20, color: AppColors.muted),
       const SizedBox(width: 11),
       Expanded(
-        child: Text(
-          label,
-          style: const TextStyle(color: AppColors.muted, fontSize: 12),
-        ),
-      ),
-      Flexible(
-        child: Text(
-          value,
-          textAlign: TextAlign.right,
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              label,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+            ),
+          ],
         ),
       ),
     ],
