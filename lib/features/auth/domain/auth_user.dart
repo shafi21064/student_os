@@ -15,6 +15,7 @@ class AuthUser {
     this.email = '',
     this.authToken = '',
     this.avatarUrl = '',
+    this.hasPassword = false,
   });
 
   factory AuthUser.fromJson(Map<String, Object?> json) => AuthUser(
@@ -26,6 +27,9 @@ class AuthUser {
     email: json['email'] as String? ?? '',
     authToken: json['authToken'] as String? ?? '',
     avatarUrl: json['avatarUrl'] as String? ?? '',
+    hasPassword:
+        json['hasPassword'] as bool? ??
+        ((json['password'] as String? ?? '').isNotEmpty),
     verified: json['verified'] as bool? ?? false,
     provider: AuthProviderType.values.firstWhere(
       (value) => value.name == json['provider'],
@@ -46,6 +50,7 @@ class AuthUser {
   final String avatarUrl;
   final bool verified;
   final AuthProviderType provider;
+  final bool hasPassword;
 
   String get firstName {
     final value = name.trim();
@@ -74,6 +79,7 @@ class AuthUser {
     String? authToken,
     String? avatarUrl,
     bool? verified,
+    bool? hasPassword,
   }) => AuthUser(
     id: id,
     name: name ?? this.name,
@@ -85,6 +91,7 @@ class AuthUser {
     avatarUrl: avatarUrl ?? this.avatarUrl,
     verified: verified ?? this.verified,
     provider: provider,
+    hasPassword: hasPassword ?? this.hasPassword,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -98,6 +105,7 @@ class AuthUser {
     'avatarUrl': avatarUrl,
     'verified': verified,
     'provider': provider.name,
+    'hasPassword': hasPassword,
   };
 }
 

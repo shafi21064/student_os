@@ -37,6 +37,7 @@ abstract interface class AuthRepository {
     required String password,
   });
   Future<ApiResponse<void>> changePassword({
+    String? oldPassword,
     required String password,
     required String confirmPassword,
   });
@@ -273,15 +274,21 @@ class SharedPreferencesAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResponse<void>> changePassword({
+    String? oldPassword,
     required String password,
     required String confirmPassword,
   }) async {
+    final fields = <String, Object?>{
+      'password': password,
+      'confirm_password': confirmPassword,
+    };
+    if (oldPassword != null && oldPassword.isNotEmpty) {
+      fields['old_password'] = oldPassword;
+    }
+
     final response = await ApiClient.instance.post<Map<String, dynamic>>(
       Api.changePassword,
-      data: FormData.fromMap({
-        'password': password,
-        'confirm_password': confirmPassword,
-      }),
+      data: FormData.fromMap(fields),
       options: Options(headers: {'accept': '*/*'}),
     );
 
@@ -502,7 +509,15 @@ class SharedPreferencesAuthRepository implements AuthRepository {
       ),
       verified: user['is_active'] == 1 || user['email_verified_at'] != null,
       provider: provider,
+      hasPassword: _asBool(user['has_password']),
     );
+  }
+
+  bool _asBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final text = value?.toString().trim().toLowerCase() ?? '';
+    return text == '1' || text == 'true' || text == 'yes';
   }
 
   String _firstNonBlank(

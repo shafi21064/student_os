@@ -23,6 +23,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final TextEditingController _email;
   late final TextEditingController _phone;
   late final TextEditingController _university;
+  final _oldPassword = TextEditingController();
+  final _newPassword = TextEditingController();
+  final _confirmPassword = TextEditingController();
   String? _avatarPath;
 
   @override
@@ -41,6 +44,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _email.dispose();
     _phone.dispose();
     _university.dispose();
+    _oldPassword.dispose();
+    _newPassword.dispose();
+    _confirmPassword.dispose();
     super.dispose();
   }
 
@@ -86,6 +92,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
     setState(() => _avatarPath = path);
+  }
+
+  Future<void> _savePassword() async {
+    final error = await ref
+        .read(authProvider.notifier)
+        .updatePassword(
+          oldPassword: _oldPassword.text,
+          password: _newPassword.text,
+          confirmPassword: _confirmPassword.text,
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error ?? 'Password saved')));
+    if (error == null) {
+      _oldPassword.clear();
+      _newPassword.clear();
+      _confirmPassword.clear();
+    }
   }
 
   @override
@@ -227,6 +252,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 14),
           AppCard(
+            child: _PasswordSection(
+              hasPassword: user?.hasPassword == true,
+              loading: auth.isLoading,
+              oldPassword: _oldPassword,
+              newPassword: _newPassword,
+              confirmPassword: _confirmPassword,
+              onSave: () => unawaited(_savePassword()),
+            ),
+          ),
+          const SizedBox(height: 14),
+          AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -358,6 +394,68 @@ class _ProfileField extends StatelessWidget {
               ),
       ),
     ],
+  );
+}
+
+class _PasswordSection extends StatelessWidget {
+  const _PasswordSection({
+    required this.hasPassword,
+    required this.loading,
+    required this.oldPassword,
+    required this.newPassword,
+    required this.confirmPassword,
+    required this.onSave,
+  });
+
+  final bool hasPassword;
+  final bool loading;
+  final TextEditingController oldPassword;
+  final TextEditingController newPassword;
+  final TextEditingController confirmPassword;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      Text(
+        hasPassword ? 'Change password' : 'Add password',
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+      ),
+      const SizedBox(height: 14),
+      if (hasPassword) ...<Widget>[
+        _PasswordField(controller: oldPassword, label: 'Current password'),
+        const SizedBox(height: 12),
+      ],
+      _PasswordField(controller: newPassword, label: 'New password'),
+      const SizedBox(height: 12),
+      _PasswordField(controller: confirmPassword, label: 'Confirm password'),
+      const SizedBox(height: 14),
+      FilledButton.icon(
+        onPressed: loading ? null : onSave,
+        icon: loading
+            ? const SizedBox.square(
+                dimension: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.lock_reset_rounded, size: 18),
+        label: Text(hasPassword ? 'Change password' : 'Add password'),
+      ),
+    ],
+  );
+}
+
+class _PasswordField extends StatelessWidget {
+  const _PasswordField({required this.controller, required this.label});
+
+  final TextEditingController controller;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: controller,
+    obscureText: true,
+    decoration: InputDecoration(labelText: label, isDense: true),
   );
 }
 

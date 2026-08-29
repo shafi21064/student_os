@@ -648,6 +648,54 @@ class AuthController extends Notifier<AuthState> {
     return null;
   }
 
+  Future<String?> updatePassword({
+    required String oldPassword,
+    required String password,
+    required String confirmPassword,
+  }) async {
+    final current = state.user;
+    if (current == null) return 'Please login again.';
+    if (current.hasPassword && oldPassword.trim().isEmpty) {
+      return 'Current password is required.';
+    }
+    if (password.length < 6) {
+      return 'Password must be at least 6 characters long.';
+    }
+    if (password != confirmPassword) {
+      return 'Passwords do not match.';
+    }
+
+    state = state.copyWith(message: '', error: '', isLoading: true);
+    final response = await _repository.changePassword(
+      oldPassword: current.hasPassword ? oldPassword : null,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+
+    if (!response.isSuccess) {
+      final message = response.message ?? 'Password update failed.';
+      state = state.copyWith(message: '', error: message, isLoading: false);
+      return message;
+    }
+
+    final updated = current.copyWith(password: password, hasPassword: true);
+    final users = state.registeredUsers.any((item) => item.id == current.id)
+        ? state.registeredUsers
+              .map((item) => item.id == current.id ? updated : item)
+              .toList(growable: false)
+        : <AuthUser>[...state.registeredUsers, updated];
+    _repository.saveUsers(users);
+    _repository.saveUser(updated);
+    state = state.copyWith(
+      user: updated,
+      registeredUsers: users,
+      message: response.message ?? 'Password updated.',
+      error: '',
+      isLoading: false,
+    );
+    return null;
+  }
+
   void setStudentVerified(bool verified) {
     final current = state.user;
     if (current == null || current.verified == verified) return;

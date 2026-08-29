@@ -206,10 +206,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               onSubmitted: (_) => _signIn(controller),
             ),
             const SizedBox(height: 6),
-            Row(
-              // alignment: WrapAlignment.spaceBetween,
-              // crossAxisAlignment: WrapCrossAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 12,
               children: <Widget>[
                 Row(
