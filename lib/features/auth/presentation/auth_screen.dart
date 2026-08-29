@@ -31,7 +31,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   late final TabController _tabController;
   _AuthStep _step = _AuthStep.tabs;
   String _countryCode = '+880';
-  bool _loginWithPassword = true;
+  bool _loginWithPassword = false;
   bool _rememberMe = false;
   bool _showPassword = false;
   bool _showNewPassword = false;
