@@ -20,6 +20,9 @@ class AuthState {
     required this.user,
     required this.registeredUsers,
     this.pendingSignUp,
+    this.pendingSignIn,
+    this.pendingPasswordReset,
+    this.passwordResetVerified = false,
     this.message = '',
     this.error = '',
     this.isLoading = false,
@@ -28,6 +31,9 @@ class AuthState {
   final AuthUser? user;
   final List<AuthUser> registeredUsers;
   final PendingSignUp? pendingSignUp;
+  final PendingOtp? pendingSignIn;
+  final PendingOtp? pendingPasswordReset;
+  final bool passwordResetVerified;
   final String message;
   final String error;
   final bool isLoading;
@@ -38,6 +44,9 @@ class AuthState {
     Object? user = _unset,
     List<AuthUser>? registeredUsers,
     Object? pendingSignUp = _unset,
+    Object? pendingSignIn = _unset,
+    Object? pendingPasswordReset = _unset,
+    bool? passwordResetVerified,
     String? message,
     String? error,
     bool? isLoading,
@@ -47,6 +56,13 @@ class AuthState {
     pendingSignUp: identical(pendingSignUp, _unset)
         ? this.pendingSignUp
         : pendingSignUp as PendingSignUp?,
+    pendingSignIn: identical(pendingSignIn, _unset)
+        ? this.pendingSignIn
+        : pendingSignIn as PendingOtp?,
+    pendingPasswordReset: identical(pendingPasswordReset, _unset)
+        ? this.pendingPasswordReset
+        : pendingPasswordReset as PendingOtp?,
+    passwordResetVerified: passwordResetVerified ?? this.passwordResetVerified,
     message: message ?? this.message,
     error: error ?? this.error,
     isLoading: isLoading ?? this.isLoading,
@@ -132,30 +148,95 @@ class AuthController extends Notifier<AuthState> {
     );
   }
 
+  Future<void> sendSignInOtp({
+    required String countryCode,
+    required String mobile,
+  }) async {
+    final phone = _loginEmailFromMobile(mobile);
+    final normalizedMobile = _normalizeMobileWithCountry(countryCode, mobile);
+    if (phone.isEmpty) {
+      state = state.copyWith(error: 'Phone number is required.', message: '');
+      return;
+    }
+
+    state = state.copyWith(message: '', error: '', isLoading: true);
+    final response = await _repository.sendSignInOtp(phone: phone);
+    if (!response.isSuccess) {
+      state = state.copyWith(
+        message: '',
+        error: response.message ?? 'OTP send failed.',
+        isLoading: false,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      pendingSignIn: PendingOtp(phone: phone, mobile: normalizedMobile),
+      pendingSignUp: null,
+      pendingPasswordReset: null,
+      passwordResetVerified: false,
+      message: response.message ?? 'OTP sent.',
+      error: '',
+      isLoading: false,
+    );
+  }
+
+  Future<void> verifySignInOtp(String code) async {
+    final pending = state.pendingSignIn;
+    if (pending == null) return;
+    if (!_validOtp(code)) {
+      state = state.copyWith(error: 'Enter a valid OTP code.', message: '');
+      return;
+    }
+
+    state = state.copyWith(message: '', error: '', isLoading: true);
+    final response = await _repository.verifySignInOtp(
+      phone: pending.phone,
+      otp: code.trim(),
+    );
+    if (!response.isSuccess || response.data == null) {
+      state = state.copyWith(
+        message: '',
+        error: response.message ?? 'OTP verification failed.',
+        isLoading: false,
+      );
+      return;
+    }
+
+    final user = (response.data! as AuthUser).copyWith(
+      mobile: pending.mobile,
+      verified: true,
+    );
+    final users = <AuthUser>[
+      ...state.registeredUsers.where((item) => item.id != user.id),
+      user,
+    ];
+    _repository.saveUsers(users);
+    _repository.saveUser(user);
+    state = state.copyWith(
+      user: user,
+      registeredUsers: users,
+      pendingSignIn: null,
+      pendingSignUp: null,
+      pendingPasswordReset: null,
+      passwordResetVerified: false,
+      message: response.message ?? 'Welcome back, ${user.firstName}!',
+      error: '',
+      isLoading: false,
+    );
+  }
+
   Future<void> startSignUp({
     required String name,
     required String countryCode,
     required String mobile,
-    required String password,
-    required String confirmPassword,
   }) async {
     final normalizedName = name.trim();
     final signupPhone = _loginEmailFromMobile(mobile);
     final normalizedMobile = _normalizeMobileWithCountry(countryCode, mobile);
-    if (normalizedName.isEmpty || signupPhone.isEmpty || password.isEmpty) {
+    if (normalizedName.isEmpty || signupPhone.isEmpty) {
       state = state.copyWith(
-        error: 'Name, mobile number, and password are required.',
-        message: '',
-      );
-      return;
-    }
-    if (password != confirmPassword) {
-      state = state.copyWith(error: 'Passwords do not match.', message: '');
-      return;
-    }
-    if (password.length < 6) {
-      state = state.copyWith(
-        error: 'Use at least 6 characters for the password.',
+        error: 'Name and mobile number are required.',
         message: '',
       );
       return;
@@ -176,8 +257,10 @@ class AuthController extends Notifier<AuthState> {
         name: normalizedName,
         mobile: normalizedMobile,
         phone: signupPhone,
-        password: password,
       ),
+      pendingSignIn: null,
+      pendingPasswordReset: null,
+      passwordResetVerified: false,
       message: response.message ?? 'Verification code sent.',
       error: '',
     );
@@ -198,7 +281,7 @@ class AuthController extends Notifier<AuthState> {
       phone: pending.phone,
       name: pending.name,
       otp: code.trim(),
-      password: pending.password,
+      password: '',
     );
     if (!response.isSuccess || response.data == null) {
       state = state.copyWith(
@@ -210,7 +293,7 @@ class AuthController extends Notifier<AuthState> {
 
     final user = (response.data! as AuthUser).copyWith(
       mobile: pending.mobile,
-      password: pending.password,
+      password: '',
       verified: true,
     );
     final users = <AuthUser>[
@@ -223,14 +306,110 @@ class AuthController extends Notifier<AuthState> {
       user: user,
       registeredUsers: users,
       pendingSignUp: null,
+      pendingSignIn: null,
+      pendingPasswordReset: null,
+      passwordResetVerified: false,
       message: response.message ?? 'Welcome aboard, ${user.firstName}!',
       error: '',
     );
-    unawaited(
-      _repository.changePassword(
-        password: pending.password,
-        confirmPassword: pending.password,
-      ),
+  }
+
+  Future<void> sendPasswordResetOtp({
+    required String countryCode,
+    required String mobile,
+  }) async {
+    final phone = _loginEmailFromMobile(mobile);
+    final normalizedMobile = _normalizeMobileWithCountry(countryCode, mobile);
+    if (phone.isEmpty) {
+      state = state.copyWith(error: 'Phone number is required.', message: '');
+      return;
+    }
+
+    state = state.copyWith(message: '', error: '', isLoading: true);
+    final response = await _repository.sendPasswordResetOtp(phone: phone);
+    if (!response.isSuccess) {
+      state = state.copyWith(
+        message: '',
+        error: response.message ?? 'Password reset OTP send failed.',
+        isLoading: false,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      pendingPasswordReset: PendingOtp(phone: phone, mobile: normalizedMobile),
+      pendingSignIn: null,
+      pendingSignUp: null,
+      passwordResetVerified: false,
+      message: response.message ?? 'OTP sent.',
+      error: '',
+      isLoading: false,
+    );
+  }
+
+  Future<void> verifyPasswordResetOtp(String code) async {
+    final pending = state.pendingPasswordReset;
+    if (pending == null) return;
+    if (!_validOtp(code)) {
+      state = state.copyWith(error: 'Enter a valid OTP code.', message: '');
+      return;
+    }
+
+    state = state.copyWith(message: '', error: '', isLoading: true);
+    final response = await _repository.verifyPasswordResetOtp(
+      phone: pending.phone,
+      otp: code.trim(),
+    );
+    state = state.copyWith(
+      message: response.isSuccess ? response.message ?? 'OTP verified.' : '',
+      error: response.isSuccess
+          ? ''
+          : response.message ?? 'OTP verification failed.',
+      passwordResetVerified: response.isSuccess,
+      isLoading: false,
+    );
+  }
+
+  Future<void> resetPassword({
+    required String password,
+    required String confirmPassword,
+  }) async {
+    final pending = state.pendingPasswordReset;
+    if (pending == null || !state.passwordResetVerified) return;
+    if (password.isEmpty || confirmPassword.isEmpty) {
+      state = state.copyWith(error: 'Password is required.', message: '');
+      return;
+    }
+    if (password.length < 6) {
+      state = state.copyWith(
+        error: 'Password must be at least 6 characters long.',
+        message: '',
+      );
+      return;
+    }
+    if (password != confirmPassword) {
+      state = state.copyWith(error: 'Passwords do not match.', message: '');
+      return;
+    }
+
+    state = state.copyWith(message: '', error: '', isLoading: true);
+    final response = await _repository.resetPassword(
+      phone: pending.phone,
+      password: password,
+      confirmPassword: confirmPassword,
+    );
+    state = state.copyWith(
+      pendingPasswordReset: response.isSuccess ? null : pending,
+      passwordResetVerified: response.isSuccess
+          ? false
+          : state.passwordResetVerified,
+      message: response.isSuccess
+          ? response.message ?? 'Password reset successfully.'
+          : '',
+      error: response.isSuccess
+          ? ''
+          : response.message ?? 'Password reset failed.',
+      isLoading: false,
     );
   }
 
@@ -425,33 +604,48 @@ class AuthController extends Notifier<AuthState> {
     );
   }
 
-  void updateProfile({
+  Future<String?> updateProfile({
     required String name,
-    required String mobile,
     required String email,
     required String university,
-  }) {
+    String? avatarPath,
+  }) async {
     final current = state.user;
-    if (current == null) return;
-    final updated = current.copyWith(
-      name: name.trim().isEmpty ? current.name : name.trim(),
-      mobile: _normalizeMobile(mobile).isEmpty
-          ? current.mobile
-          : _normalizeMobile(mobile),
-      email: email.trim(),
+    if (current == null) return 'Please login again.';
+
+    state = state.copyWith(message: '', error: '', isLoading: true);
+    final response = await _repository.updateProfile(
+      name: name,
+      email: email,
+      phone: _loginEmailFromMobile(current.mobile),
+      avatarPath: avatarPath,
+      currentUser: current,
+    );
+
+    if (!response.isSuccess || response.data == null) {
+      final message = response.message ?? 'Profile update failed.';
+      state = state.copyWith(message: '', error: message, isLoading: false);
+      return message;
+    }
+
+    final updated = (response.data! as AuthUser).copyWith(
       university: university.trim(),
     );
-    final users = state.registeredUsers
-        .map((item) => item.id == current.id ? updated : item)
-        .toList(growable: false);
+    final users = state.registeredUsers.any((item) => item.id == current.id)
+        ? state.registeredUsers
+              .map((item) => item.id == current.id ? updated : item)
+              .toList(growable: false)
+        : <AuthUser>[...state.registeredUsers, updated];
     state = state.copyWith(
       user: updated,
       registeredUsers: users,
-      message: 'Profile updated.',
+      message: response.message ?? 'Profile updated.',
       error: '',
+      isLoading: false,
     );
     _repository.saveUsers(users);
     _repository.saveUser(updated);
+    return null;
   }
 
   void setStudentVerified(bool verified) {
@@ -477,6 +671,9 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(
       user: null,
       pendingSignUp: null,
+      pendingSignIn: null,
+      pendingPasswordReset: null,
+      passwordResetVerified: false,
       message: '',
       error: '',
     );
@@ -496,8 +693,23 @@ class AuthController extends Notifier<AuthState> {
       user: null,
       registeredUsers: users,
       pendingSignUp: null,
+      pendingSignIn: null,
+      pendingPasswordReset: null,
+      passwordResetVerified: false,
       message: '',
       error: '',
+    );
+  }
+
+  void cancelPendingAuth() {
+    state = state.copyWith(
+      pendingSignUp: null,
+      pendingSignIn: null,
+      pendingPasswordReset: null,
+      passwordResetVerified: false,
+      message: '',
+      error: '',
+      isLoading: false,
     );
   }
 
@@ -527,6 +739,8 @@ class AuthController extends Notifier<AuthState> {
     if (digits.startsWith('880')) return '0${digits.substring(3)}';
     return '0$digits';
   }
+
+  bool _validOtp(String code) => RegExp(r'^\d{4,6}$').hasMatch(code.trim());
 
   String _appleDisplayName(AuthorizationCredentialAppleID credential) {
     final parts = <String>[

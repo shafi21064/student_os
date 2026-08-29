@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +23,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   late final TextEditingController _email;
   late final TextEditingController _phone;
   late final TextEditingController _university;
+  String? _avatarPath;
 
   @override
   void initState() {
@@ -40,33 +44,61 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     super.dispose();
   }
 
-  void _toggleEdit() {
+  Future<void> _toggleEdit() async {
     if (_editing) {
-      ref
+      final error = await ref
           .read(authProvider.notifier)
           .updateProfile(
             name: _name.text,
-            mobile: _phone.text,
             email: _email.text,
             university: _university.text,
+            avatarPath: _avatarPath,
           );
+      if (!mounted) return;
+      if (error != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error)));
+        return;
+      }
+      final user = ref.read(authProvider).user;
+      _name.text = user?.name ?? _name.text;
+      _email.text = user?.email ?? _email.text;
+      _phone.text = user?.mobile ?? _phone.text;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Profile saved')));
     }
-    setState(() => _editing = !_editing);
+    setState(() {
+      _editing = !_editing;
+      if (!_editing) _avatarPath = null;
+    });
+  }
+
+  Future<void> _pickAvatar() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    final path = result?.files.single.path;
+    if (!mounted) return;
+    if (path == null || path.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not read selected image.')),
+      );
+      return;
+    }
+    setState(() => _avatarPath = path);
   }
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final auth = ref.watch(authProvider);
     final university = user?.university.trim();
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.profile),
         actions: <Widget>[
           TextButton.icon(
-            onPressed: _toggleEdit,
+            onPressed: auth.isLoading ? null : () => unawaited(_toggleEdit()),
             icon: Icon(
               _editing ? Icons.check_rounded : Icons.edit_outlined,
               size: 18,
@@ -92,28 +124,31 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
-                    user?.initials ?? 'S',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: user?.avatarUrl.isEmpty == false
+                      ? Image.network(
+                          user!.avatarUrl,
+                          width: 112,
+                          height: 112,
+                          fit: BoxFit.cover,
+                        )
+                      : Text(
+                          user?.initials ?? 'S',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 42,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                 ),
                 if (_editing)
                   Positioned(
                     right: 0,
                     bottom: 0,
                     child: IconButton.filled(
-                      onPressed: () =>
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Photo picker is ready for backend integration.',
-                              ),
-                            ),
-                          ),
+                      onPressed: auth.isLoading
+                          ? null
+                          : () => unawaited(_pickAvatar()),
                       icon: const Icon(Icons.camera_alt_outlined, size: 18),
                     ),
                   ),
@@ -177,7 +212,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   icon: Icons.phone_outlined,
                   label: 'Phone',
                   controller: _phone,
-                  editable: _editing,
+                  editable: false,
                 ),
                 const Divider(height: 24),
                 _ProfileField(

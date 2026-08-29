@@ -24,6 +24,11 @@ abstract interface class AuthRepository {
     required String email,
     required String password,
   });
+  Future<ApiResponse<void>> sendSignInOtp({required String phone});
+  Future<ApiResponse<AuthUser>> verifySignInOtp({
+    required String phone,
+    required String otp,
+  });
   Future<ApiResponse<void>> sendSignUpOtp({required String phone});
   Future<ApiResponse<AuthUser>> verifySignUpOtp({
     required String phone,
@@ -34,6 +39,23 @@ abstract interface class AuthRepository {
   Future<ApiResponse<void>> changePassword({
     required String password,
     required String confirmPassword,
+  });
+  Future<ApiResponse<void>> sendPasswordResetOtp({required String phone});
+  Future<ApiResponse<void>> verifyPasswordResetOtp({
+    required String phone,
+    required String otp,
+  });
+  Future<ApiResponse<void>> resetPassword({
+    required String phone,
+    required String password,
+    required String confirmPassword,
+  });
+  Future<ApiResponse<AuthUser>> updateProfile({
+    required String name,
+    required String email,
+    required String phone,
+    String? avatarPath,
+    required AuthUser currentUser,
   });
   Future<ApiResponse<AuthUser>> socialLogin({
     required String name,
@@ -139,15 +161,22 @@ class SharedPreferencesAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<ApiResponse<void>> sendSignUpOtp({required String phone}) async {
+  Future<ApiResponse<void>> sendSignInOtp({required String phone}) =>
+      _postResultOnly(Api.sendSignInOtp, {'phone': phone}, 'OTP send failed.');
+
+  @override
+  Future<ApiResponse<AuthUser>> verifySignInOtp({
+    required String phone,
+    required String otp,
+  }) async {
     final response = await ApiClient.instance.post<Map<String, dynamic>>(
-      Api.sendSignUpOtp,
-      data: FormData.fromMap({'phone': phone}),
+      Api.verifySignInOtp,
+      data: FormData.fromMap({'phone': phone, 'otp': otp}),
       options: Options(headers: {'accept': '*/*'}),
     );
 
     if (!response.isSuccess) {
-      return ApiResponse<void>.failure(
+      return ApiResponse<AuthUser>.failure(
         statusCode: response.statusCode,
         message: response.message,
         error: response.error,
@@ -155,19 +184,40 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     }
 
     final body = response.data;
-    if (body is Map<String, dynamic> && body['result'] == true) {
-      return ApiResponse<void>.success(
+    if (body is! Map<String, dynamic> || body['result'] != true) {
+      return ApiResponse<AuthUser>.failure(
         statusCode: response.statusCode,
-        message: body['message']?.toString(),
+        message: body is Map<String, dynamic>
+            ? body['message']?.toString()
+            : 'OTP verification failed.',
       );
     }
 
-    return ApiResponse<void>.failure(
+    final data = body['data'];
+    if (data is! Map<String, dynamic>) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body['message']?.toString() ?? 'OTP verification failed.',
+      );
+    }
+
+    final token = _tokenFromAuthData(data);
+    if (token != null && token.isNotEmpty) {
+      ApiClient.instance.setAuthToken(token);
+    }
+
+    return ApiResponse<AuthUser>.success(
       statusCode: response.statusCode,
-      message: body is Map<String, dynamic>
-          ? body['message']?.toString()
-          : 'OTP send failed.',
+      data: _authUserFromAuthData(data, '', authToken: token ?? ''),
+      message: body['message']?.toString(),
     );
+  }
+
+  @override
+  Future<ApiResponse<void>> sendSignUpOtp({required String phone}) async {
+    return _postResultOnly(Api.sendSignUpOtp, {
+      'phone': phone,
+    }, 'OTP send failed.');
   }
 
   @override
@@ -259,6 +309,131 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     );
   }
 
+  @override
+  Future<ApiResponse<void>> sendPasswordResetOtp({required String phone}) =>
+      _postResultOnly(Api.forgetPasswordPhone, {
+        'phone': phone,
+      }, 'Password reset OTP send failed.');
+
+  @override
+  Future<ApiResponse<void>> verifyPasswordResetOtp({
+    required String phone,
+    required String otp,
+  }) => _postResultOnly(Api.verifyOTPWithEmail, {
+    'phone': phone,
+    'otp': otp,
+  }, 'OTP verification failed.');
+
+  @override
+  Future<ApiResponse<void>> resetPassword({
+    required String phone,
+    required String password,
+    required String confirmPassword,
+  }) => _postResultOnly(Api.resetPasswordWithEmail, {
+    'phone': phone,
+    'password': password,
+    'confirm_password': confirmPassword,
+  }, 'Password reset failed.');
+
+  @override
+  Future<ApiResponse<AuthUser>> updateProfile({
+    required String name,
+    required String email,
+    required String phone,
+    String? avatarPath,
+    required AuthUser currentUser,
+  }) async {
+    final fields = <String, Object?>{
+      'name': name,
+      'email': email,
+      'phone': phone,
+    };
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      fields['avatar'] = await MultipartFile.fromFile(avatarPath);
+    }
+
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      Api.profileUpdate,
+      data: FormData.fromMap(fields),
+      options: Options(headers: {'accept': 'application/json'}),
+    );
+
+    if (!response.isSuccess) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: response.message,
+        error: response.error,
+      );
+    }
+
+    final body = response.data;
+    if (body is! Map<String, dynamic> || body['result'] != true) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body is Map<String, dynamic>
+            ? body['message']?.toString()
+            : 'Profile update failed.',
+      );
+    }
+
+    final data = body['data'];
+    if (data is! Map<String, dynamic>) {
+      return ApiResponse<AuthUser>.failure(
+        statusCode: response.statusCode,
+        message: body['message']?.toString() ?? 'Profile update failed.',
+      );
+    }
+
+    return ApiResponse<AuthUser>.success(
+      statusCode: response.statusCode,
+      data: _authUserFromAuthData(
+        data,
+        currentUser.password,
+        authToken: currentUser.authToken,
+        provider: currentUser.provider,
+        fallbackName: currentUser.name,
+        fallbackEmail: currentUser.email,
+        fallbackId: currentUser.id,
+      ).copyWith(university: currentUser.university),
+      message: body['message']?.toString(),
+    );
+  }
+
+  Future<ApiResponse<void>> _postResultOnly(
+    String url,
+    Map<String, Object?> fields,
+    String fallbackMessage,
+  ) async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      url,
+      data: FormData.fromMap(fields),
+      options: Options(headers: {'accept': '*/*'}),
+    );
+
+    if (!response.isSuccess) {
+      return ApiResponse<void>.failure(
+        statusCode: response.statusCode,
+        message: response.message,
+        error: response.error,
+      );
+    }
+
+    final body = response.data;
+    if (body is Map<String, dynamic> && body['result'] == true) {
+      return ApiResponse<void>.success(
+        statusCode: response.statusCode,
+        message: body['message']?.toString(),
+      );
+    }
+
+    return ApiResponse<void>.failure(
+      statusCode: response.statusCode,
+      message: body is Map<String, dynamic>
+          ? body['message']?.toString()
+          : fallbackMessage,
+    );
+  }
+
   List<AuthUser> _decodeUsers(String? source) {
     if (source == null || source.isEmpty) return const <AuthUser>[];
     try {
@@ -301,9 +476,7 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     String fallbackId = '',
   }) {
     final userJson = data['user'];
-    final user = userJson is Map<String, dynamic>
-        ? userJson
-        : const <String, dynamic>{};
+    final user = userJson is Map<String, dynamic> ? userJson : data;
     final id =
         user['id']?.toString() ?? data['user_id']?.toString() ?? fallbackId;
     final name = _firstNonBlank(

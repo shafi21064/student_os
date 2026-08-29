@@ -40,7 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final tasks = ref.watch(tasksProvider);
     final budget = ref.watch(budgetProvider);
-    final completed = tasks.where((task) => task.completed).length;
+    final pendingTasks = tasks.where((task) => !task.completed).toList();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSizes.pagePadding),
       child: CustomScrollView(
@@ -56,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(height: 18),
                 _BudgetCard(budget: budget),
                 const SizedBox(height: 18),
-                _TasksCard(tasks: tasks, completed: completed),
+                _TasksCard(tasks: pendingTasks),
                 const SizedBox(height: 22),
                 const SectionHeader(title: AppStrings.exploreStudentOs),
                 const SizedBox(height: 10),
@@ -436,19 +436,15 @@ class _BudgetMetric extends StatelessWidget {
 }
 
 class _TasksCard extends ConsumerWidget {
-  const _TasksCard({required this.tasks, required this.completed});
+  const _TasksCard({required this.tasks});
 
   final List<TaskItem> tasks;
-  final int completed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => AppCard(
     child: Column(
       children: <Widget>[
-        SectionHeader(
-          title: AppStrings.todaysTasks,
-          onSeeAll: () => context.push('/tasks'),
-        ),
+        SectionHeader(title: "Task's", onSeeAll: () => context.push('/tasks')),
         const SizedBox(height: 8),
         ...tasks
             .take(4)
@@ -511,7 +507,7 @@ class _TasksCard extends ConsumerWidget {
             const Icon(Icons.task_alt_rounded, color: AppColors.blue, size: 17),
             const SizedBox(width: 7),
             Text(
-              '$completed of ${tasks.length} completed today',
+              '${tasks.length} pending task${tasks.length == 1 ? '' : 's'}',
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 11,

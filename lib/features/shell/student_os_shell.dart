@@ -143,24 +143,7 @@ class _StudentOsShellState extends ConsumerState<StudentOsShell> {
                       button: true,
                       label:
                           'Open profile for ${user?.name ?? AppStrings.student.toLowerCase()}',
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: <Color>[AppColors.teal, AppColors.purple],
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          user?.initials ?? 'S',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
+                      child: _UserAvatar(user: user, size: 40),
                     ),
                   ),
                 ],
@@ -389,19 +372,10 @@ class _StudentSidebarDrawer extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 child: Row(
                   children: <Widget>[
-                    SizedBox(
-                      width: 50,
-                      height: 50,
-                      child: Center(
-                        child: Text(
-                          user?.initials ?? 'S',
-                          style: const TextStyle(
-                            color: AppColors.gray700,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
+                    _UserAvatar(
+                      user: user,
+                      size: 50,
+                      fallbackTextColor: AppColors.gray700,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -496,6 +470,53 @@ class _StudentSidebarDrawer extends StatelessWidget {
       return;
     }
     context.push(route);
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  const _UserAvatar({
+    required this.user,
+    required this.size,
+    this.fallbackTextColor = Colors.white,
+  });
+
+  final AuthUser? user;
+  final double size;
+  final Color fallbackTextColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatarUrl = user?.avatarUrl.trim() ?? '';
+    final fallback = Text(
+      user?.initials ?? 'S',
+      style: TextStyle(
+        color: fallbackTextColor,
+        fontSize: size * .36,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: <Color>[AppColors.teal, AppColors.purple],
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      alignment: Alignment.center,
+      child: avatarUrl.isEmpty
+          ? fallback
+          : Image.network(
+              avatarUrl,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => fallback,
+            ),
+    );
   }
 }
 

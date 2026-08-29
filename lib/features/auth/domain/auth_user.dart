@@ -107,11 +107,17 @@ class PendingSignUp {
     required this.name,
     required this.mobile,
     required this.phone,
-    required this.password,
   });
 
   final String name;
   final String mobile;
   final String phone;
-  final String password;
+}
+
+@immutable
+class PendingOtp {
+  const PendingOtp({required this.phone, required this.mobile});
+
+  final String phone;
+  final String mobile;
 }
