@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:studentos/core/api/api.dart';
+import 'package:studentos/core/api/api_client.dart';
 
 final favoritesProvider = NotifierProvider<FavoritesController, Set<String>>(
   FavoritesController.new,
@@ -25,6 +28,27 @@ class CartController extends Notifier<Map<String, int>> {
 
   void add(String id, [int quantity = 1]) {
     state = <String, int>{...state, id: (state[id] ?? 0) + quantity};
+  }
+
+  Future<String?> addProduct(String productId, [int quantity = 1]) async {
+    final response = await ApiClient.instance.post<Map<String, dynamic>>(
+      Api.productDomainCart,
+      data: FormData.fromMap(<String, dynamic>{
+        'product_id': productId,
+        'quantity': quantity,
+      }),
+    );
+    final body = response.data;
+    if (response.isSuccess &&
+        body is Map<String, dynamic> &&
+        body['result'] == true) {
+      add(productId, quantity);
+      return null;
+    }
+
+    return body is Map<String, dynamic>
+        ? body['message']?.toString() ?? 'Add to cart failed.'
+        : response.message ?? 'Add to cart failed.';
   }
 
   void setQuantity(String id, int quantity) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:studentos/core/api/api.dart';
+import 'package:studentos/core/api/api_client.dart';
 import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/theme/app_sizes.dart';
@@ -12,12 +14,53 @@ import 'package:studentos/features/auth/data/auth_controller.dart';
 import 'package:studentos/features/commerce/commerce_widgets.dart';
 import 'package:studentos/state/favorites_controller.dart';
 
-class CartScreen extends ConsumerWidget {
+class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final lines = _cartLines(ref.watch(cartProvider));
+  ConsumerState<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends ConsumerState<CartScreen> {
+  List<_CartLine> _lines = const <_CartLine>[];
+  var _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCart();
+  }
+
+  Future<void> _loadCart() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final response = await ApiClient.instance.get<Map<String, dynamic>>(
+      Api.productDomainCart,
+    );
+    final body = response.data;
+    if (!mounted) return;
+
+    if (response.isSuccess &&
+        body is Map<String, dynamic> &&
+        body['data'] is Map<String, dynamic>) {
+      final data = body['data'] as Map<String, dynamic>;
+      setState(() => _lines = _cartLinesFrom(data['cart_items']));
+    } else {
+      setState(() {
+        _error = body is Map<String, dynamic>
+            ? body['message']?.toString() ?? 'Cart fetch failed.'
+            : response.message ?? 'Cart fetch failed.';
+      });
+    }
+    if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final lines = _lines;
     final total = _total(lines);
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.yourCart)),
@@ -36,7 +79,11 @@ class CartScreen extends ConsumerWidget {
                 child: Text('Buy All · ৳${_money(total)}'),
               ),
             ),
-      body: lines.isEmpty
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? EmptyState(emoji: '🛒', title: 'Cart unavailable', message: _error!)
+          : lines.isEmpty
           ? const EmptyState(
               emoji: '🛒',
               title: 'Your cart is empty',
@@ -56,12 +103,7 @@ class CartScreen extends ConsumerWidget {
                     child: AppCard(
                       child: Row(
                         children: <Widget>[
-                          EmojiTile(
-                            emoji: line.item.emoji,
-                            background: line.item.background,
-                            size: 58,
-                            emojiSize: 30,
-                          ),
+                          _CartItemImage(item: line.item),
                           const SizedBox(width: AppSizes.gapMd),
                           Expanded(
                             child: Column(
@@ -89,7 +131,7 @@ class CartScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 7),
                                 Text(
-                                  '৳${_money(_price(line.item.price))} × ${line.quantity}',
+                                  '${line.item.price} × ${line.quantity}',
                                   style: const TextStyle(
                                     color: AppColors.blue,
                                     fontWeight: FontWeight.w900,
@@ -98,21 +140,12 @@ class CartScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          Column(
-                            children: <Widget>[
-                              QuantityStepper(
-                                value: line.quantity,
-                                onChanged: (value) => ref
-                                    .read(cartProvider.notifier)
-                                    .setQuantity(line.item.id, value),
-                              ),
-                              TextButton(
-                                onPressed: () => ref
-                                    .read(cartProvider.notifier)
-                                    .setQuantity(line.item.id, 0),
-                                child: const Text(AppStrings.remove),
-                              ),
-                            ],
+                          Text(
+                            '৳${_money(line.total)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.purple,
+                            ),
                           ),
                         ],
                       ),
@@ -425,19 +458,61 @@ class WishlistScreen extends ConsumerWidget {
 }
 
 class _CartLine {
-  const _CartLine(this.item, this.quantity);
+  const _CartLine(this.item, this.quantity, {int? total}) : total = total ?? 0;
 
   final CatalogItem item;
   final int quantity;
+  final int total;
 }
 
 List<_CartLine> _cartLines(Map<String, int> cart) => cart.entries
     .map((entry) {
       final item = _itemById(entry.key);
-      return item == null ? null : _CartLine(item, entry.value);
+      return item == null
+          ? null
+          : _CartLine(
+              item,
+              entry.value,
+              total: _price(item.price) * entry.value,
+            );
     })
     .nonNulls
     .toList(growable: false);
+
+List<_CartLine> _cartLinesFrom(Object? source) {
+  if (source is! List) return const <_CartLine>[];
+  return source
+      .whereType<Map<String, dynamic>>()
+      .map((row) {
+        final product = row['product_data'];
+        if (product is! Map<String, dynamic>) return null;
+        final quantity = _asInt(row['quantity']) ?? 1;
+        final unitPrice =
+            _asInt(row['unit_price']) ?? _asInt(product['price']) ?? 0;
+        final total = _asInt(row['net_price']) ?? unitPrice * quantity;
+        final title = product['title']?.toString() ?? '';
+        return _CartLine(
+          CatalogItem(
+            id:
+                product['id']?.toString() ??
+                row['product_id']?.toString() ??
+                '',
+            slug: product['slug']?.toString(),
+            title: title,
+            subtitle: 'Product',
+            emoji: '🛍️',
+            imageUrl: product['banner']?.toString(),
+            price: '৳${_money(unitPrice)}',
+            background: AppColors.purpleSoft,
+          ),
+          quantity,
+          total: total,
+        );
+      })
+      .nonNulls
+      .where((line) => line.item.id.isNotEmpty && line.item.title.isNotEmpty)
+      .toList(growable: false);
+}
 
 CatalogItem? _itemById(String id) {
   for (final item in allSearchableItems()) {
@@ -446,8 +521,12 @@ CatalogItem? _itemById(String id) {
   return null;
 }
 
-int _total(List<_CartLine> lines) =>
-    lines.fold(0, (sum, line) => sum + _price(line.item.price) * line.quantity);
+int _total(List<_CartLine> lines) => lines.fold(
+  0,
+  (sum, line) =>
+      sum +
+      (line.total == 0 ? _price(line.item.price) * line.quantity : line.total),
+);
 
 int _price(String value) =>
     int.tryParse(value.replaceAll(RegExp(r'\D'), '')) ?? 0;
@@ -460,6 +539,44 @@ String _money(int value) {
     buffer.write(raw[i]);
   }
   return buffer.toString();
+}
+
+int? _asInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.round();
+  return int.tryParse(value?.toString() ?? '');
+}
+
+class _CartItemImage extends StatelessWidget {
+  const _CartItemImage({required this.item});
+
+  final CatalogItem item;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(16),
+    child: SizedBox(
+      width: 58,
+      height: 58,
+      child: item.imageUrl == null || item.imageUrl!.isEmpty
+          ? EmojiTile(
+              emoji: item.emoji,
+              background: item.background,
+              size: 58,
+              emojiSize: 30,
+            )
+          : Image.network(
+              item.imageUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => EmojiTile(
+                emoji: item.emoji,
+                background: item.background,
+                size: 58,
+                emojiSize: 30,
+              ),
+            ),
+    ),
+  );
 }
 
 String _kindFor(CatalogItem item) {

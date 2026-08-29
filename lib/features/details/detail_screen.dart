@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:studentos/core/api/api.dart';
+import 'package:studentos/core/api/api_client.dart';
 import 'package:studentos/core/constants/app_strings.dart';
 import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/theme/app_sizes.dart';
@@ -25,10 +27,56 @@ class DetailScreen extends ConsumerStatefulWidget {
 class _DetailScreenState extends ConsumerState<DetailScreen> {
   var _actionCompleted = false;
   var _quantity = 1;
+  CatalogItem? _product;
+  List<String> _productFeatures = const <String>[];
+  var _loadingProduct = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.kind == 'product') _loadProduct();
+  }
+
+  @override
+  void didUpdateWidget(covariant DetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.kind == 'product' && widget.id != oldWidget.id) {
+      _loadProduct();
+    }
+  }
+
+  Future<void> _loadProduct() async {
+    setState(() => _loadingProduct = true);
+    final response = await ApiClient.instance.get<Map<String, dynamic>>(
+      '${Api.productDomainProducts}/${widget.id}',
+    );
+    final body = response.data;
+    if (!mounted) return;
+
+    if (response.isSuccess &&
+        body is Map<String, dynamic> &&
+        body['data'] is Map<String, dynamic>) {
+      final data = body['data'] as Map<String, dynamic>;
+      setState(() {
+        _product = _productFrom(data);
+        _productFeatures = _stringsFrom(data['features_arr']);
+      });
+    }
+
+    if (mounted) setState(() => _loadingProduct = false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final item = findCatalogItem(widget.kind, widget.id);
+    final item = widget.kind == 'product'
+        ? _product
+        : findCatalogItem(widget.kind, widget.id);
+    if (_loadingProduct && item == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(_titleFor(widget.kind))),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     if (item == null) {
       return Scaffold(
         appBar: AppBar(title: const Text(AppStrings.notFound)),
@@ -100,8 +148,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
                   Expanded(
                     child: FilledButton(
                       onPressed: () {
-                        ref.read(cartProvider.notifier).add(item.id, _quantity);
-                        context.push('/checkout');
+                        _addProductToCart(item, checkout: true);
                       },
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.purple,
@@ -144,12 +191,22 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
         children: <Widget>[
           Container(
             height: 224,
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: item.background,
               borderRadius: BorderRadius.circular(30),
             ),
             alignment: Alignment.center,
-            child: Text(item.emoji, style: const TextStyle(fontSize: 96)),
+            child: item.imageUrl == null || item.imageUrl!.isEmpty
+                ? Text(item.emoji, style: const TextStyle(fontSize: 96))
+                : Image.network(
+                    item.imageUrl!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) =>
+                        Text(item.emoji, style: const TextStyle(fontSize: 96)),
+                  ),
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -259,22 +316,26 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
-                ..._facts(widget.kind, item).map(
+                ...<Widget>[
+                  ..._facts(widget.kind, item).map(
+                    (fact) => _FactRow(
+                      icon: fact.$1,
+                      text: fact.$2,
+                      color: _accentFor(widget.kind),
+                    ),
+                  ),
+                  if (widget.kind == 'product')
+                    ..._productFeatures.map(
+                      (feature) => _FactRow(
+                        icon: Icons.check_circle_outline_rounded,
+                        text: feature,
+                        color: _accentFor(widget.kind),
+                      ),
+                    ),
+                ].map(
                   (fact) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Icon(fact.$1, size: 19, color: _accentFor(widget.kind)),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            fact.$2,
-                            style: const TextStyle(height: 1.35),
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: fact,
                   ),
                 ),
               ],
@@ -306,9 +367,97 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
     );
   }
 
+  CatalogItem _productFrom(Map<String, dynamic> data) {
+    final title = data['title']?.toString() ?? '';
+    final price = _asInt(data['sale_price']) ?? _asInt(data['price']) ?? 0;
+    final originalPrice = _asInt(data['price']);
+    final discount = _asInt(data['discount']) ?? 0;
+    final categories = _stringsFrom(data['categories_title_arr']);
+    final images = _stringsFrom(data['large_images_arr']);
+    return CatalogItem(
+      id: data['id']?.toString() ?? data['slug']?.toString() ?? title,
+      slug: data['slug']?.toString(),
+      title: title,
+      subtitle: categories.isEmpty ? 'Product' : categories.first.toString(),
+      emoji: '🛍️',
+      imageUrl: images.firstOrNull ?? data['small_image']?.toString(),
+      price: _money(price),
+      originalPrice: discount > 0 && originalPrice != null
+          ? _money(originalPrice)
+          : null,
+      badge: discount > 0 ? '$discount% OFF' : null,
+      rating: _asDouble(data['rating']),
+      category: categories.isEmpty ? 'All' : categories.first.toString(),
+      description: _stripHtml(data['description']?.toString() ?? ''),
+      background: AppColors.purpleSoft,
+    );
+  }
+
+  List<String> _stringsFrom(Object? source) {
+    if (source is! List) return const <String>[];
+    return source
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String _stripHtml(String value) => value
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'</p\s*>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'<[^>]*>'), '')
+      .trim();
+
+  int? _asInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.round();
+    return int.tryParse(value?.toString() ?? '');
+  }
+
+  double? _asDouble(Object? value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '');
+  }
+
+  String _money(int value) {
+    final raw = value.toString();
+    final buffer = StringBuffer('৳');
+    for (var i = 0; i < raw.length; i++) {
+      if (i > 0 && (raw.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(raw[i]);
+    }
+    return buffer.toString();
+  }
+
+  Future<void> _addProductToCart(
+    CatalogItem item, {
+    bool checkout = false,
+  }) async {
+    final error = await ref
+        .read(cartProvider.notifier)
+        .addProduct(item.id, _quantity);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    setState(() => _actionCompleted = true);
+    if (checkout) {
+      context.push('/checkout');
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_snackMessage(widget.kind, item))));
+    }
+  }
+
   void _performAction(BuildContext context, CatalogItem item) {
     if (widget.kind == 'event') {
       ref.read(registrationsProvider.notifier).register(item.id);
+    } else if (widget.kind == 'product') {
+      _addProductToCart(item);
+      return;
     } else if (_isCartItem(widget.kind)) {
       ref.read(cartProvider.notifier).add(item.id, _quantity);
       setState(() => _actionCompleted = true);
@@ -319,6 +468,24 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(_snackMessage(widget.kind, item))));
   }
+}
+
+class _FactRow extends StatelessWidget {
+  const _FactRow({required this.icon, required this.text, required this.color});
+
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: <Widget>[
+      Icon(icon, size: 19, color: color),
+      const SizedBox(width: 10),
+      Expanded(child: Text(text, style: const TextStyle(height: 1.35))),
+    ],
+  );
 }
 
 String _titleFor(String kind) => switch (kind) {

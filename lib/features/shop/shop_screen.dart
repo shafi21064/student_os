@@ -10,7 +10,6 @@ import 'package:studentos/core/theme/app_colors.dart';
 import 'package:studentos/core/theme/app_sizes.dart';
 import 'package:studentos/core/widgets/app_card.dart';
 import 'package:studentos/core/widgets/common_widgets.dart';
-import 'package:studentos/data/demo_data.dart';
 import 'package:studentos/data/models.dart';
 import 'package:studentos/state/favorites_controller.dart';
 
@@ -242,6 +241,27 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     return buffer.toString();
   }
 
+  Future<void> _addProductToCart(
+    CatalogItem item, {
+    bool checkout = false,
+  }) async {
+    final error = await ref.read(cartProvider.notifier).addProduct(item.id);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    if (checkout) {
+      context.push('/checkout');
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${item.title} added to cart')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final favorites = ref.watch(favoritesProvider);
@@ -365,16 +385,8 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                       ref.read(favoritesProvider.notifier).toggle(item.id),
                   onTap: () =>
                       context.push('/details/product/${item.slug ?? item.id}'),
-                  onBuy: () {
-                    ref.read(cartProvider.notifier).add(item.id);
-                    context.push('/checkout');
-                  },
-                  onCart: () {
-                    ref.read(cartProvider.notifier).add(item.id);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('${item.title} added to cart')),
-                    );
-                  },
+                  onBuy: () => _addProductToCart(item, checkout: true),
+                  onCart: () => _addProductToCart(item),
                 );
               },
             ),
