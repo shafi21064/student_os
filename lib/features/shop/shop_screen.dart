@@ -23,16 +23,16 @@ class ShopScreen extends ConsumerStatefulWidget {
 class _ShopScreenState extends ConsumerState<ShopScreen> {
   static const _allCategory = _ShopCategory(title: 'All');
   static const _sortOptions = <_SortOption>[
-    _SortOption(value: 'newest', label: 'Newest'),
-    _SortOption(value: 'expensive', label: 'Price high to low'),
-    _SortOption(value: 'best_seller', label: 'Best seller'),
-    _SortOption(value: 'inexpensive', label: 'Price low to high'),
-    _SortOption(value: 'best_rates', label: 'Best rates'),
+    _SortOption(value: 'Newest', label: 'Newest'),
+    _SortOption(value: 'Price: High to Low', label: 'Price high to low'),
+    _SortOption(value: 'Best Selling', label: 'Best seller'),
+    _SortOption(value: 'Price: Low to High', label: 'Price low to high'),
+    _SortOption(value: 'Rating', label: 'Best rates'),
   ];
 
   final _scrollController = ScrollController();
   String _query = '';
-  String _sortBy = 'newest';
+  String _sortBy = 'Newest';
   List<_ShopCategory> _categories = const <_ShopCategory>[_allCategory];
   _ShopCategory _category = _allCategory;
   List<CatalogItem> _products = const <CatalogItem>[];
@@ -75,7 +75,10 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
         .whereType<Map<String, dynamic>>()
         .map(
           (item) => _ShopCategory(
-            title: item['title']?.toString().trim() ?? '',
+            title:
+                item['name']?.toString().trim() ??
+                item['title']?.toString().trim() ??
+                '',
             slug: item['slug']?.toString().trim(),
           ),
         )
@@ -110,10 +113,11 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
       Api.productDomainProducts,
       queryParameters: <String, dynamic>{
         'page': page,
-        'sort_by': _sortBy,
+        'source': 'app',
+        'per_page': 24,
+        'order_by': _sortBy,
         if (_query.trim().isNotEmpty) 'search': _query.trim(),
-        if (_category.slug?.isNotEmpty ?? false)
-          'product_category_slug': _category.slug,
+        if (_category.slug?.isNotEmpty ?? false) 'category': _category.slug,
       },
     );
     final body = response.data;
@@ -189,36 +193,73 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     return source
         .whereType<Map<String, dynamic>>()
         .map((item) {
-          final title = item['title']?.toString() ?? '';
+          final title =
+              item['name']?.toString() ?? item['title']?.toString() ?? '';
           final price =
               _asInt(item['sale_price']) ?? _asInt(item['price']) ?? 0;
           final originalPrice = _asInt(item['price']);
           final discount = _asInt(item['discount']) ?? 0;
-          final categories = item['categories_title_arr'];
+          final categories = _namesFrom(
+            item['product_categories'] ?? item['categories_title_arr'],
+          );
           return CatalogItem(
             id: item['id']?.toString() ?? item['slug']?.toString() ?? title,
             slug: item['slug']?.toString(),
             title: title,
-            subtitle: categories is List && categories.isNotEmpty
-                ? categories.first.toString()
-                : 'Product',
+            subtitle: categories.isNotEmpty ? categories.first : 'Product',
             emoji: '🛍️',
-            imageUrl: item['small_image']?.toString(),
+            imageUrl: _firstImage(item),
             price: _money(price),
             originalPrice: discount > 0 && originalPrice != null
                 ? _money(originalPrice)
                 : null,
             badge: discount > 0 ? '$discount% OFF' : null,
-            rating: _asDouble(item['rating']),
-            category: categories is List && categories.isNotEmpty
-                ? categories.first.toString()
-                : 'All',
+            rating: _asDouble(item['ratings'] ?? item['rating']),
+            category: categories.isNotEmpty ? categories.first : 'All',
+            description: _stripHtml(
+              item['short_description']?.toString() ??
+                  item['description']?.toString() ??
+                  '',
+            ),
             background: AppColors.purpleSoft,
           );
         })
         .where((item) => item.title.isNotEmpty)
         .toList(growable: false);
   }
+
+  List<String> _namesFrom(Object? source) {
+    if (source is! List) return const <String>[];
+    return source
+        .map((item) => item is Map ? item['name'] ?? item['title'] : item)
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String? _firstImage(Map<String, dynamic> item) {
+    for (final key in <String>[
+      'small_pictures',
+      'pictures',
+      'large_pictures',
+    ]) {
+      final images = item[key];
+      if (images is List) {
+        for (final image in images) {
+          if (image is Map && image['url']?.toString().isNotEmpty == true) {
+            return image['url'].toString();
+          }
+        }
+      }
+    }
+    return item['small_image']?.toString() ?? item['thumbnail']?.toString();
+  }
+
+  String _stripHtml(String value) => value
+      .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'</p\s*>', caseSensitive: false), '\n')
+      .replaceAll(RegExp(r'<[^>]*>'), '')
+      .trim();
 
   int? _asInt(Object? value) {
     if (value is int) return value;

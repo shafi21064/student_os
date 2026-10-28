@@ -254,11 +254,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                   },
           ),
           const SizedBox(height: 14),
-          // _SocialButton(
-          //   text: 'Login with Google',
-          //   icon: const _GoogleMark(),
-          //   onPressed: auth.isLoading ? null : controller.onPressedGoogleLogin,
-          // ),
+          _SocialButton(
+            text: 'Login with Google',
+            icon: const _GoogleMark(),
+            onPressed: auth.isLoading ? null : controller.onPressedGoogleLogin,
+          ),
           if (!_isAndroid) ...<Widget>[
             const SizedBox(height: 12),
             _SocialButton(
@@ -311,13 +311,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             onPressed: () => _startSignUp(controller),
           ),
           const SizedBox(height: 20),
-          // const _DividerLabel('Or Register With'),
-          // const SizedBox(height: 12),
-          // _SocialButton(
-          //   text: 'Signup with Google',
-          //   icon: const _GoogleMark(),
-          //   onPressed: auth.isLoading ? null : controller.onPressedGoogleLogin,
-          // ),
+          const _DividerLabel('Or Register With'),
+          const SizedBox(height: 12),
+          _SocialButton(
+            text: 'Signup with Google',
+            icon: const _GoogleMark(),
+            onPressed: auth.isLoading ? null : controller.onPressedGoogleLogin,
+          ),
           if (!_isAndroid) ...<Widget>[
             const SizedBox(height: 12),
             _SocialButton(
@@ -943,6 +943,47 @@ class _SocialButton extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
   );
+}
+
+class _GoogleMark extends StatelessWidget {
+  const _GoogleMark();
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: 20,
+    child: CustomPaint(painter: _GoogleMarkPainter()),
+  );
+}
+
+class _GoogleMarkPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = size.width * .18;
+    final rect = Offset.zero & size;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect.deflate(stroke / 2), -.08, 1.55, false, paint);
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(rect.deflate(stroke / 2), 1.45, 1.35, false, paint);
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(rect.deflate(stroke / 2), 2.78, 1.12, false, paint);
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect.deflate(stroke / 2), 3.85, 1.55, false, paint);
+
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawLine(
+      Offset(size.width * .55, size.height * .50),
+      Offset(size.width * .92, size.height * .50),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _DividerLabel extends StatelessWidget {

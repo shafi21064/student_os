@@ -350,11 +350,8 @@ class SharedPreferencesAuthRepository implements AuthRepository {
     String? avatarPath,
     required AuthUser currentUser,
   }) async {
-    final fields = <String, Object?>{
-      'name': name,
-      'email': email,
-      'phone': phone,
-    };
+    final fields = <String, Object?>{'name': name, 'phone': phone};
+    if (email.trim().isNotEmpty) fields['email'] = email.trim();
     if (avatarPath != null && avatarPath.isNotEmpty) {
       fields['avatar'] = await MultipartFile.fromFile(avatarPath);
     }

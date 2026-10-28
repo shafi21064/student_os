@@ -162,6 +162,26 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         parentNavigatorKey: _rootNavigatorKey,
+        path: '/shipping-address',
+        builder: (context, state) => const ShippingAddressScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orders',
+        builder: (context, state) => const OrderHistoryScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '/orders/:id/address',
+        builder: (context, state) => OrderAddressUpdateScreen(
+          orderId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+          address: state.extra is ShippingAddressData
+              ? state.extra as ShippingAddressData
+              : null,
+        ),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
         path: '/budget',
         builder: (context, state) => const BudgetScreen(),
       ),

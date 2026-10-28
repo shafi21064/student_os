@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "562871577584",
+    "firebase_url": "https://studentos-47fac-default-rtdb.firebaseio.com",
     "project_id": "studentos-47fac",
     "storage_bucket": "studentos-47fac.firebasestorage.app"
   },

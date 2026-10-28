@@ -2,6 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:studentos/core/api/api_client.dart';
 import 'package:studentos/core/storage/preferences_provider.dart';
 import 'package:studentos/features/auth/data/auth_controller.dart';
 import 'package:studentos/state/budget_controller.dart';
@@ -44,6 +45,25 @@ void main() {
 
     expect(after.spent, before.spent + 300);
     expect(after.remaining, before.remaining - 300);
+  });
+
+  test('budget controller resets local state when auth token changes', () {
+    ApiClient.instance.clearAuthToken();
+    final container = ProviderContainer();
+    addTearDown(() {
+      container.dispose();
+      ApiClient.instance.clearAuthToken();
+    });
+
+    container.read(budgetProvider.notifier).updateBudget(9500);
+    ApiClient.instance.setAuthToken('new-account-token');
+    container
+        .read(budgetProvider.notifier)
+        .addExpense(label: 'Tea', category: 'Food', amount: 50);
+
+    final state = container.read(budgetProvider);
+    expect(state.budget, 0);
+    expect(state.spent, 50);
   });
 
   test('favorites controller toggles ids', () {

@@ -52,8 +52,15 @@ final budgetProvider = NotifierProvider<BudgetController, BudgetState>(
 );
 
 class BudgetController extends Notifier<BudgetState> {
+  String? _scopeToken;
+
   @override
   BudgetState build() {
+    _scopeToken = ApiClient.instance.authToken;
+    return _emptyState();
+  }
+
+  BudgetState _emptyState() {
     final currentMonth = _monthLabel(DateTime.now());
     return BudgetState(
       selectedMonth: currentMonth,
@@ -65,10 +72,20 @@ class BudgetController extends Notifier<BudgetState> {
     );
   }
 
-  void selectMonth(String month) =>
-      state = state.copyWith(selectedMonth: month);
+  void _ensureAuthScope() {
+    final token = ApiClient.instance.authToken;
+    if (_scopeToken == token) return;
+    _scopeToken = token;
+    state = _emptyState();
+  }
+
+  void selectMonth(String month) {
+    _ensureAuthScope();
+    state = state.copyWith(selectedMonth: month);
+  }
 
   void selectDate(DateTime date) {
+    _ensureAuthScope();
     final month = _monthLabel(date);
     final next = <String, int>{...state.budgets};
     next.putIfAbsent(month, () => 0);
@@ -80,12 +97,14 @@ class BudgetController extends Notifier<BudgetState> {
   }
 
   void updateBudget(int amount) {
+    _ensureAuthScope();
     if (amount <= 0) return;
     final next = <String, int>{...state.budgets, state.selectedMonth: amount};
     state = state.copyWith(budgets: Map<String, int>.unmodifiable(next));
   }
 
   Future<String?> saveBudget(int amount) async {
+    _ensureAuthScope();
     if (amount <= 0) return 'Enter a valid budget amount';
 
     final (year, month) = _selectedYearMonth();
@@ -118,6 +137,7 @@ class BudgetController extends Notifier<BudgetState> {
   }
 
   Future<String?> fetchSelectedBudget() async {
+    _ensureAuthScope();
     final (year, month) = _selectedYearMonth();
     final response = await ApiClient.instance.get<Map<String, dynamic>>(
       '${Api.userBudgets}/$year/$month',
@@ -190,6 +210,7 @@ class BudgetController extends Notifier<BudgetState> {
     required String category,
     required int amount,
   }) async {
+    _ensureAuthScope();
     if (label.trim().isEmpty || amount <= 0) {
       return 'Enter a description and valid amount.';
     }
@@ -225,6 +246,7 @@ class BudgetController extends Notifier<BudgetState> {
     required String category,
     required int amount,
   }) {
+    _ensureAuthScope();
     if (label.trim().isEmpty || amount <= 0) return;
     final transaction = TransactionItem(
       id: DateTime.now().microsecondsSinceEpoch.toString(),

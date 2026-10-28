@@ -4,9 +4,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 // Read from dart-define for web
 const String baseUrlFromDefine = String.fromEnvironment('BASE_URL');
 const String baseUrlWebFromDefine = String.fromEnvironment('BASE_URL_WEB');
+const String kireiBaseUrlFromDefine = String.fromEnvironment('KIREI_BASE_URL');
 const String googleClientIdFromDefine = String.fromEnvironment(
   'GOOGLE_CLIENT_ID',
 );
+const String _defaultGoogleClientId =
+    '562871577584-ufj2pqmleikmmpplvoun31dfurf99g99.apps.googleusercontent.com';
 
 class EnvConfig {
   EnvConfig._();
@@ -33,9 +36,24 @@ class EnvConfig {
     }
   }
 
+  static String get kireiBaseUrl {
+    if (kIsWeb) {
+      return kireiBaseUrlFromDefine.isNotEmpty
+          ? kireiBaseUrlFromDefine
+          : 'https://frontendapi.kireibd.com/api/v2';
+    } else {
+      return dotenv.env['KIREI_BASE_URL'] ??
+          'https://frontendapi.kireibd.com/api/v2';
+    }
+  }
+
   static String get googleClientId {
-    if (kIsWeb) return _cleanEnvValue(googleClientIdFromDefine);
-    return _cleanEnvValue(dotenv.env['GOOGLE_CLIENT_ID'] ?? '');
+    if (kIsWeb) {
+      final value = _cleanEnvValue(googleClientIdFromDefine);
+      return value.isEmpty ? _defaultGoogleClientId : value;
+    }
+    final value = _cleanEnvValue(dotenv.env['GOOGLE_CLIENT_ID'] ?? '');
+    return value.isEmpty ? _defaultGoogleClientId : value;
   }
 
   static String _cleanEnvValue(String value) {

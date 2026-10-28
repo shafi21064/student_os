@@ -37,17 +37,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       _loading = true;
       _error = null;
     });
-    final response = await ApiClient.instance.get<Map<String, dynamic>>(
-      Api.productDomainCart,
+    final response = await ApiClient.instance.post<dynamic>(
+      Api.cart,
+      data: const <String, dynamic>{'source': 'app'},
     );
     final body = response.data;
     if (!mounted) return;
 
-    if (response.isSuccess &&
-        body is Map<String, dynamic> &&
-        body['data'] is Map<String, dynamic>) {
-      final data = body['data'] as Map<String, dynamic>;
-      setState(() => _lines = _cartLinesFrom(data['cart_items']));
+    if (response.isSuccess) {
+      setState(() => _lines = _cartLinesFrom(body));
     } else {
       setState(() {
         _error = body is Map<String, dynamic>
@@ -168,8 +166,20 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _address = TextEditingController();
   final _note = TextEditingController();
-  var _payment = 'StudentOS Pay';
-  var _pickup = false;
+  var _payment = 'cash_on_delivery';
+  var _loading = true;
+  var _submitting = false;
+  String? _error;
+  List<_CartLine> _lines = const <_CartLine>[];
+  List<ShippingAddressData> _addresses = const <ShippingAddressData>[];
+  ShippingAddressData? _selectedAddress;
+  Map<String, dynamic>? _summary;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCheckout();
+  }
 
   @override
   void dispose() {
@@ -178,14 +188,140 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     super.dispose();
   }
 
+  Future<void> _loadCheckout() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final cart = await ApiClient.instance.post<dynamic>(
+      Api.cart,
+      data: const <String, dynamic>{'source': 'app'},
+    );
+    final addresses = await ApiClient.instance.get<dynamic>(
+      Api.shippingAddress,
+      queryParameters: const <String, dynamic>{'source': 'app'},
+    );
+    if (!mounted) return;
+
+    if (!cart.isSuccess) {
+      setState(() {
+        _error = cart.message ?? 'Cart fetch failed.';
+        _loading = false;
+      });
+      return;
+    }
+
+    final lines = _cartLinesFrom(cart.data);
+    final parsedAddresses = _addressesFrom(addresses.data);
+    final selected = parsedAddresses.firstOrNull;
+    if (selected != null && _address.text.trim().isEmpty) {
+      _address.text = selected.address;
+    }
+    setState(() {
+      _lines = lines;
+      _addresses = parsedAddresses;
+      _selectedAddress = selected;
+      _loading = false;
+    });
+    await _loadSummary();
+  }
+
+  Future<void> _loadSummary() async {
+    if (_lines.isEmpty) return;
+    final response = await ApiClient.instance.post<dynamic>(
+      Api.checkoutSummary,
+      data: <String, dynamic>{
+        'product_ids_arr': _lines
+            .map((line) => int.tryParse(line.item.id) ?? 0)
+            .toList(),
+        'product_quantities_arr': _lines.map((line) => line.quantity).toList(),
+        'city_id': _selectedAddress?.cityId,
+        'phone_number': _selectedAddress?.phone,
+        'remove_coupon': false,
+      },
+    );
+    final data = response.data;
+    if (!mounted || !response.isSuccess || data is! Map<String, dynamic>) {
+      return;
+    }
+    setState(
+      () => _summary = data['data'] is Map<String, dynamic>
+          ? data['data'] as Map<String, dynamic>
+          : null,
+    );
+  }
+
+  Future<void> _placeOrder() async {
+    final user = ref.read(authProvider).user;
+    final address = _address.text.trim();
+    final selectedAddress = _selectedAddress;
+    if (address.length < 10 ||
+        selectedAddress == null ||
+        selectedAddress.cityId == null ||
+        selectedAddress.zoneId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add or select a shipping address first.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _submitting = true);
+    final response = await ApiClient.instance.post<dynamic>(
+      Api.productOrder,
+      data: <String, dynamic>{
+        'product_ids_arr': _lines
+            .map((line) => int.tryParse(line.item.id) ?? 0)
+            .toList(),
+        'product_quantities_arr': _lines.map((line) => line.quantity).toList(),
+        'shipping_address': address,
+        'shipping_name': selectedAddress.name.isNotEmpty
+            ? selectedAddress.name
+            : user?.name ?? AppStrings.student,
+        'shipping_phone': selectedAddress.phone.isNotEmpty
+            ? selectedAddress.phone
+            : user?.mobile ?? '',
+        'shipping_city_id': selectedAddress.cityId,
+        'shipping_zone_id': selectedAddress.zoneId,
+        'shipping_area_id': selectedAddress.areaId,
+        'is_preorder': 0,
+        'payment_type': _payment,
+        'note': _note.text.trim(),
+        'type': 'app',
+        'coupon_code': null,
+        'redeem_point': 0,
+        'source': 'app',
+      },
+    );
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    final body = response.data;
+    if (response.isSuccess &&
+        body is Map<String, dynamic> &&
+        body['result'] == true) {
+      ref.read(cartProvider.notifier).clear();
+      context.go('/purchase-result?status=success');
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _messageFrom(body) ?? response.message ?? 'Order failed.',
+        ),
+      ),
+    );
+    context.push('/purchase-result?status=failed');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final lines = _cartLines(ref.watch(cartProvider));
+    final lines = _lines;
     final user = ref.watch(authProvider).user;
-    final subtotal = _total(lines);
-    final discount = (subtotal * .08).round().clamp(0, 500);
-    final delivery = _pickup ? 0 : 45;
-    final total = subtotal - discount + delivery;
+    final subtotal = _summaryMoney('sub_total') ?? _total(lines);
+    final discount = _summaryMoney('discount') ?? 0;
+    final delivery = _summaryMoney('shipping_cost') ?? 0;
+    final total =
+        _summaryMoney('grand_total') ?? subtotal - discount + delivery;
 
     return Scaffold(
       appBar: AppBar(title: const Text(AppStrings.checkout)),
@@ -194,24 +330,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           : SafeArea(
               minimum: AppSizes.bottomActionInsets,
               child: FilledButton(
-                onPressed: () {
-                  if (!_pickup && _address.text.trim().isEmpty) {
-                    context.push('/purchase-result?status=failed');
-                    return;
-                  }
-                  ref.read(cartProvider.notifier).clear();
-                  context.go('/purchase-result?status=success');
-                },
+                onPressed: _submitting ? null : _placeOrder,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.purple,
                   minimumSize: const Size.fromHeight(
                     AppSizes.bottomActionHeight,
                   ),
                 ),
-                child: Text('Place order · ৳${_money(total)}'),
+                child: Text(
+                  _submitting
+                      ? 'Placing order...'
+                      : 'Place order · ৳${_money(total)}',
+                ),
               ),
             ),
-      body: lines.isEmpty
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? EmptyState(
+              emoji: '🛒',
+              title: 'Checkout unavailable',
+              message: _error!,
+            )
+          : lines.isEmpty
           ? const EmptyState(
               emoji: '🛒',
               title: 'Nothing to checkout',
@@ -226,9 +367,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(
-                        AppStrings.contactDetails,
-                        style: Theme.of(context).textTheme.titleMedium,
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              AppStrings.contactDetails,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => context.push('/shipping-address'),
+                            child: Text(
+                              _addresses.isEmpty ? 'Add address' : 'Manage',
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: AppSizes.gapMd),
                       CommerceInfoRow(
@@ -241,13 +394,36 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             ? user!.mobile
                             : AppStrings.notAdded,
                       ),
-                      CommerceInfoRow(
-                        label: AppStrings.campus,
-                        value: user?.university.isNotEmpty == true
-                            ? user!.university
-                            : AppStrings.notAdded,
-                      ),
                       const SizedBox(height: AppSizes.gapSm),
+                      if (_addresses.isNotEmpty) ...<Widget>[
+                        DropdownButtonFormField<ShippingAddressData>(
+                          initialValue: _selectedAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Saved address',
+                          ),
+                          items: _addresses
+                              .map(
+                                (address) =>
+                                    DropdownMenuItem<ShippingAddressData>(
+                                      value: address,
+                                      child: Text(
+                                        address.address,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() {
+                              _selectedAddress = value;
+                              _address.text = value.address;
+                            });
+                            _loadSummary();
+                          },
+                        ),
+                        const SizedBox(height: AppSizes.gapSm),
+                      ],
                       TextField(
                         controller: _address,
                         minLines: 2,
@@ -272,35 +448,20 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        AppStrings.deliveryOptions,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: _pickup,
-                        onChanged: (value) => setState(() => _pickup = value),
-                        title: const Text(AppStrings.campusPickup),
-                        subtitle: const Text(AppStrings.noDeliveryFee),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSizes.gapLg),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
                         AppStrings.paymentMethod,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: AppSizes.gapSm),
-                      ...<String>['StudentOS Pay', 'bKash', 'Card'].map(
+                      ...const <(String, String)>[
+                        ('cash_on_delivery', 'Cash on Delivery'),
+                        ('bkash', 'bKash'),
+                        ('ssl', 'Card'),
+                      ].map(
                         (method) => ListTile(
                           contentPadding: EdgeInsets.zero,
-                          onTap: () => setState(() => _payment = method),
-                          title: Text(method),
-                          trailing: _payment == method
+                          onTap: () => setState(() => _payment = method.$1),
+                          title: Text(method.$2),
+                          trailing: _payment == method.$1
                               ? const Icon(
                                   Icons.check_circle_rounded,
                                   color: AppColors.purple,
@@ -353,6 +514,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ],
             ),
     );
+  }
+
+  int? _summaryMoney(String key) {
+    final value = _summary?[key];
+    if (value is num) return value.round();
+    return int.tryParse(value?.toString().replaceAll(RegExp(r'\D'), '') ?? '');
   }
 }
 
@@ -415,6 +582,481 @@ class PurchaseResultScreen extends StatelessWidget {
   );
 }
 
+class ShippingAddressScreen extends ConsumerStatefulWidget {
+  const ShippingAddressScreen({super.key});
+
+  @override
+  ConsumerState<ShippingAddressScreen> createState() =>
+      ShippingAddressDataScreenState();
+}
+
+class ShippingAddressDataScreenState
+    extends ConsumerState<ShippingAddressScreen> {
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+  final _email = TextEditingController();
+  final _address = TextEditingController();
+  final _city = TextEditingController();
+  final _zone = TextEditingController();
+  final _area = TextEditingController();
+  var _loading = true;
+  var _saving = false;
+  List<ShippingAddressData> _addresses = const <ShippingAddressData>[];
+
+  @override
+  void initState() {
+    super.initState();
+    final user = ref.read(authProvider).user;
+    _name.text = user?.name ?? '';
+    _phone.text = user?.mobile ?? '';
+    _email.text = user?.email ?? '';
+    _loadAddresses();
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _email.dispose();
+    _address.dispose();
+    _city.dispose();
+    _zone.dispose();
+    _area.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAddresses() async {
+    final response = await ApiClient.instance.get<dynamic>(
+      Api.shippingAddress,
+      queryParameters: const <String, dynamic>{'source': 'app'},
+    );
+    if (!mounted) return;
+    final addresses = _addressesFrom(response.data);
+    setState(() {
+      _addresses = addresses;
+      _loading = false;
+    });
+  }
+
+  Future<void> _save() async {
+    if (_address.text.trim().length < 10 ||
+        _city.text.trim().isEmpty ||
+        _zone.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Address, city id, and zone id are required.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    final response = await ApiClient.instance.post<dynamic>(
+      Api.shippingAddressCreateOrUpdate,
+      queryParameters: const <String, dynamic>{'source': 'app'},
+      data: <String, dynamic>{
+        'address': _address.text.trim(),
+        'area_id': _area.text.trim(),
+        'zone_id': _zone.text.trim(),
+        'city_id': _city.text.trim(),
+        'phone': _phone.text.trim(),
+        'name': _name.text.trim(),
+        'email': _email.text.trim(),
+      },
+    );
+    if (!mounted) return;
+    setState(() => _saving = false);
+    final ok = response.isSuccess && response.data is Map<String, dynamic>;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok ? 'Address saved' : response.message ?? 'Address save failed.',
+        ),
+      ),
+    );
+    if (ok) _loadAddresses();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Shipping Address')),
+    bottomNavigationBar: SafeArea(
+      minimum: AppSizes.bottomActionInsets,
+      child: FilledButton(
+        onPressed: _saving ? null : _save,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(AppSizes.bottomActionHeight),
+        ),
+        child: Text(_saving ? 'Saving...' : 'Save address'),
+      ),
+    ),
+    body: _loading
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
+            padding: AppSizes.listPadding,
+            children: <Widget>[
+              if (_addresses.isNotEmpty) ...<Widget>[
+                ..._addresses.map(
+                  (address) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSizes.gapMd),
+                    child: AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            address.name.isEmpty
+                                ? 'Saved address'
+                                : address.name,
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(address.address),
+                          if (address.phone.isNotEmpty)
+                            Text(
+                              address.phone,
+                              style: const TextStyle(color: AppColors.muted),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSizes.gapSm),
+              ],
+              AppCard(
+                child: Column(
+                  children: <Widget>[
+                    TextField(
+                      controller: _name,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                    ),
+                    const SizedBox(height: AppSizes.gapSm),
+                    TextField(
+                      controller: _phone,
+                      decoration: const InputDecoration(labelText: 'Phone'),
+                    ),
+                    const SizedBox(height: AppSizes.gapSm),
+                    TextField(
+                      controller: _email,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                    ),
+                    const SizedBox(height: AppSizes.gapSm),
+                    TextField(
+                      controller: _address,
+                      minLines: 2,
+                      maxLines: 4,
+                      decoration: const InputDecoration(labelText: 'Address'),
+                    ),
+                    const SizedBox(height: AppSizes.gapSm),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: TextField(
+                            controller: _city,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'City ID',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.gapSm),
+                        Expanded(
+                          child: TextField(
+                            controller: _zone,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Zone ID',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.gapSm),
+                        Expanded(
+                          child: TextField(
+                            controller: _area,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Area ID',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+  );
+}
+
+class OrderHistoryScreen extends StatefulWidget {
+  const OrderHistoryScreen({super.key});
+
+  @override
+  State<OrderHistoryScreen> createState() => _OrderHistoryScreenState();
+}
+
+class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
+  var _loading = true;
+  String? _error;
+  List<Map<String, dynamic>> _orders = const <Map<String, dynamic>>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    final response = await ApiClient.instance.get<dynamic>(
+      Api.purchaseHistory,
+      queryParameters: const <String, dynamic>{'source': 'app'},
+    );
+    if (!mounted) return;
+    final body = response.data;
+    if (response.isSuccess &&
+        body is Map<String, dynamic> &&
+        body['data'] is List) {
+      setState(() {
+        _orders = (body['data'] as List)
+            .whereType<Map<String, dynamic>>()
+            .toList(growable: false);
+        _loading = false;
+      });
+      return;
+    }
+    setState(() {
+      _error =
+          _messageFrom(body) ?? response.message ?? 'Order history failed.';
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Order History')),
+    body: _loading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+        ? EmptyState(emoji: '📦', title: 'Orders unavailable', message: _error!)
+        : _orders.isEmpty
+        ? const EmptyState(
+            emoji: '📦',
+            title: 'No orders yet',
+            message: 'Your Kirei orders will appear here.',
+          )
+        : ListView.separated(
+            padding: AppSizes.listPadding,
+            itemCount: _orders.length,
+            separatorBuilder: (_, _) => const SizedBox(height: AppSizes.gapMd),
+            itemBuilder: (context, index) {
+              final order = _orders[index];
+              final id = order['id']?.toString() ?? '';
+              final shipping = order['shipping_address'];
+              final address = shipping is Map<String, dynamic>
+                  ? ShippingAddressData.fromJson(shipping)
+                  : null;
+              return AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Text(
+                            'Order #$id',
+                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        Text(
+                          order['grand_total']?.toString() ?? '',
+                          style: const TextStyle(
+                            color: AppColors.purple,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      order['date']?.toString() ?? '',
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (address != null) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Text(address.address),
+                    ],
+                    const SizedBox(height: AppSizes.gapSm),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: id.isEmpty
+                            ? null
+                            : () => context.push(
+                                '/orders/$id/address',
+                                extra: address,
+                              ),
+                        icon: const Icon(Icons.edit_location_alt_outlined),
+                        label: const Text('Update shipping'),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+  );
+}
+
+class OrderAddressUpdateScreen extends StatefulWidget {
+  const OrderAddressUpdateScreen({
+    required this.orderId,
+    this.address,
+    super.key,
+  });
+
+  final int orderId;
+  final ShippingAddressData? address;
+
+  @override
+  State<OrderAddressUpdateScreen> createState() =>
+      _OrderAddressUpdateScreenState();
+}
+
+class _OrderAddressUpdateScreenState extends State<OrderAddressUpdateScreen> {
+  late final TextEditingController _name;
+  late final TextEditingController _phone;
+  late final TextEditingController _address;
+  late final TextEditingController _city;
+  late final TextEditingController _zone;
+  late final TextEditingController _area;
+  var _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final address = widget.address;
+    _name = TextEditingController(text: address?.name ?? '');
+    _phone = TextEditingController(text: address?.phone ?? '');
+    _address = TextEditingController(text: address?.address ?? '');
+    _city = TextEditingController(text: address?.cityId?.toString() ?? '');
+    _zone = TextEditingController(text: address?.zoneId?.toString() ?? '');
+    _area = TextEditingController(text: address?.areaId?.toString() ?? '');
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    _address.dispose();
+    _city.dispose();
+    _zone.dispose();
+    _area.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final response = await ApiClient.instance.post<dynamic>(
+      '${Api.changeOrderAddresses}${widget.orderId}',
+      data: <String, dynamic>{
+        'source': 'app',
+        'shipping_name': _name.text.trim(),
+        'shipping_address': _address.text.trim(),
+        'shipping_area_id': int.tryParse(_area.text.trim()) ?? 0,
+        'shipping_city_id': int.tryParse(_city.text.trim()) ?? 0,
+        'shipping_zone_id': int.tryParse(_zone.text.trim()) ?? 0,
+        'shipping_phone': _phone.text.trim(),
+      },
+    );
+    if (!mounted) return;
+    setState(() => _saving = false);
+    final ok = response.isSuccess && response.data is Map<String, dynamic>;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Shipping address updated'
+              : response.message ?? 'Update failed.',
+        ),
+      ),
+    );
+    if (ok) context.pop();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text('Order #${widget.orderId} Shipping')),
+    bottomNavigationBar: SafeArea(
+      minimum: AppSizes.bottomActionInsets,
+      child: FilledButton(
+        onPressed: _saving ? null : _save,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size.fromHeight(AppSizes.bottomActionHeight),
+        ),
+        child: Text(_saving ? 'Updating...' : 'Update shipping'),
+      ),
+    ),
+    body: ListView(
+      padding: AppSizes.listPadding,
+      children: <Widget>[
+        AppCard(
+          child: Column(
+            children: <Widget>[
+              TextField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              const SizedBox(height: AppSizes.gapSm),
+              TextField(
+                controller: _phone,
+                decoration: const InputDecoration(labelText: 'Phone'),
+              ),
+              const SizedBox(height: AppSizes.gapSm),
+              TextField(
+                controller: _address,
+                minLines: 2,
+                maxLines: 4,
+                decoration: const InputDecoration(labelText: 'Address'),
+              ),
+              const SizedBox(height: AppSizes.gapSm),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      controller: _city,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'City ID'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.gapSm),
+                  Expanded(
+                    child: TextField(
+                      controller: _zone,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Zone ID'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.gapSm),
+                  Expanded(
+                    child: TextField(
+                      controller: _area,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Area ID'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class WishlistScreen extends ConsumerWidget {
   const WishlistScreen({super.key});
 
@@ -465,43 +1107,59 @@ class _CartLine {
   final int total;
 }
 
-List<_CartLine> _cartLines(Map<String, int> cart) => cart.entries
-    .map((entry) {
-      final item = _itemById(entry.key);
-      return item == null
-          ? null
-          : _CartLine(
-              item,
-              entry.value,
-              total: _price(item.price) * entry.value,
-            );
-    })
-    .nonNulls
-    .toList(growable: false);
-
 List<_CartLine> _cartLinesFrom(Object? source) {
-  if (source is! List) return const <_CartLine>[];
-  return source
-      .whereType<Map<String, dynamic>>()
+  final rows = <Map<String, dynamic>>[];
+  void collect(Object? value) {
+    if (value is Map<String, dynamic>) {
+      final data = value['data'];
+      final items = value['cart_items'];
+      if (data != null) collect(data);
+      if (items != null) collect(items);
+      if (value.containsKey('product_data') ||
+          value.containsKey('product_name') ||
+          value.containsKey('product_id')) {
+        rows.add(value);
+      }
+    } else if (value is List) {
+      for (final item in value) {
+        collect(item);
+      }
+    }
+  }
+
+  collect(source);
+  return rows
       .map((row) {
         final product = row['product_data'];
-        if (product is! Map<String, dynamic>) return null;
+        final productMap = product is Map<String, dynamic>
+            ? product
+            : const <String, dynamic>{};
         final quantity = _asInt(row['quantity']) ?? 1;
         final unitPrice =
-            _asInt(row['unit_price']) ?? _asInt(product['price']) ?? 0;
+            _asInt(row['price']) ??
+            _asInt(row['unit_price']) ??
+            _asInt(productMap['sale_price']) ??
+            _asInt(productMap['price']) ??
+            0;
         final total = _asInt(row['net_price']) ?? unitPrice * quantity;
-        final title = product['title']?.toString() ?? '';
+        final title =
+            row['product_name']?.toString() ??
+            productMap['name']?.toString() ??
+            productMap['title']?.toString() ??
+            '';
         return _CartLine(
           CatalogItem(
             id:
-                product['id']?.toString() ??
                 row['product_id']?.toString() ??
+                productMap['id']?.toString() ??
                 '',
-            slug: product['slug']?.toString(),
+            slug: row['slug']?.toString() ?? productMap['slug']?.toString(),
             title: title,
             subtitle: 'Product',
             emoji: '🛍️',
-            imageUrl: product['banner']?.toString(),
+            imageUrl:
+                row['product_thumbnail_image']?.toString() ??
+                productMap['banner']?.toString(),
             price: '৳${_money(unitPrice)}',
             background: AppColors.purpleSoft,
           ),
@@ -509,16 +1167,63 @@ List<_CartLine> _cartLinesFrom(Object? source) {
           total: total,
         );
       })
-      .nonNulls
       .where((line) => line.item.id.isNotEmpty && line.item.title.isNotEmpty)
       .toList(growable: false);
 }
 
-CatalogItem? _itemById(String id) {
-  for (final item in allSearchableItems()) {
-    if (item.id == id) return item;
+List<ShippingAddressData> _addressesFrom(Object? source) {
+  if (source is! Map<String, dynamic> || source['data'] is! List) {
+    return const <ShippingAddressData>[];
   }
-  return null;
+  return (source['data'] as List)
+      .whereType<Map<String, dynamic>>()
+      .map(ShippingAddressData.fromJson)
+      .where((address) => address.address.isNotEmpty)
+      .toList(growable: false);
+}
+
+String? _messageFrom(Object? body) => body is Map<String, dynamic>
+    ? body['message']?.toString() ?? body['error']?.toString()
+    : null;
+
+class ShippingAddressData {
+  const ShippingAddressData({
+    required this.address,
+    required this.name,
+    required this.phone,
+    this.id,
+    this.cityId,
+    this.zoneId,
+    this.areaId,
+    this.cityName,
+    this.zoneName,
+    this.areaName,
+  });
+
+  factory ShippingAddressData.fromJson(Map<String, dynamic> json) =>
+      ShippingAddressData(
+        id: _asInt(json['id']),
+        address: json['address']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        phone: json['phone']?.toString() ?? '',
+        cityId: _asInt(json['city_id']),
+        zoneId: _asInt(json['zone_id']),
+        areaId: _asInt(json['area_id']),
+        cityName: json['city_name']?.toString() ?? json['city']?.toString(),
+        zoneName: json['zone_name']?.toString() ?? json['zone']?.toString(),
+        areaName: json['area_name']?.toString() ?? json['area']?.toString(),
+      );
+
+  final int? id;
+  final String address;
+  final String name;
+  final String phone;
+  final int? cityId;
+  final int? zoneId;
+  final int? areaId;
+  final String? cityName;
+  final String? zoneName;
+  final String? areaName;
 }
 
 int _total(List<_CartLine> lines) => lines.fold(

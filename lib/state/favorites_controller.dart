@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:studentos/core/api/api.dart';
 import 'package:studentos/core/api/api_client.dart';
@@ -32,11 +31,13 @@ class CartController extends Notifier<Map<String, int>> {
 
   Future<String?> addProduct(String productId, [int quantity = 1]) async {
     final response = await ApiClient.instance.post<Map<String, dynamic>>(
-      Api.productDomainCart,
-      data: FormData.fromMap(<String, dynamic>{
-        'product_id': productId,
+      Api.addToCart,
+      data: <String, dynamic>{
+        'source': 'app',
+        'id': productId,
         'quantity': quantity,
-      }),
+        'is_preorder': '0',
+      },
     );
     final body = response.data;
     if (response.isSuccess &&

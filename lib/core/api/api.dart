@@ -4,6 +4,7 @@ class Api {
   Api._();
 
   static final String baseUrl = EnvConfig.baseUrl;
+  static final String kireiBaseUrl = EnvConfig.kireiBaseUrl;
 
   /// Authentication
   static String loginWithEmail = "$baseUrl/api/v1/auth/signin";
@@ -48,15 +49,31 @@ class Api {
   static String courseCategory = "$baseUrl/api/v1/course-categories";
 
   ///cart
-  static String cart = "$baseUrl/api/v1/product-carts";
-  static String deleteCartProduct = "$baseUrl/api/v1/product-carts/";
-  static String applyCoupon = "$baseUrl/api/v1/apply-coupon-on-product-cart";
-  static String removeCoupon =
-      "$baseUrl/api/v1/remove-coupon-from-product-cart";
+  static String cart = "$kireiBaseUrl/carts";
+  static String deleteCartProduct = "$kireiBaseUrl/carts";
+  static String applyCoupon = "$kireiBaseUrl/coupon-apply/on-cart";
+  static String removeCoupon = "$kireiBaseUrl/coupon-remove";
 
   ///order
-  static String productOrder = "$baseUrl/api/v1/product-orders";
+  static String productOrder = "$kireiBaseUrl/credential/order-store/v2";
   static String courseOrder = "$baseUrl/api/v1/course-orders/";
+
+  /// Kirei checkout/address/order history
+  static String addToCart = "$kireiBaseUrl/carts/add";
+  static String cartQuantityUpdate = "$kireiBaseUrl/carts/change-quantity";
+  static String checkoutSummary = "$kireiBaseUrl/checkout-summary";
+  static String paymentTypes = "$kireiBaseUrl/payment-types";
+  static String shippingAddress = "$kireiBaseUrl/user/shipping/address";
+  static String shippingAddressCreateOrUpdate =
+      "$kireiBaseUrl/user/shipping/create-or-update";
+  static String cityAddresses = "$kireiBaseUrl/cities-by-country/3069";
+  static String zoneAddresses = "$kireiBaseUrl/zones-by-city";
+  static String areaAddresses = "$kireiBaseUrl/areas-by-zone";
+  static String changeOrderAddresses = "$kireiBaseUrl/order/shipping-update/";
+  static String purchaseHistory = "$kireiBaseUrl/purchase-history";
+  static String purchaseHistoryDetails =
+      "$kireiBaseUrl/purchase-history-details";
+  static String orderHistory = "$kireiBaseUrl/order-details";
 
   ///blogs
   static String blogs = "$baseUrl/api/v1/blogs";
@@ -66,15 +83,12 @@ class Api {
   static String postComment = "$baseUrl/api/v1/blog-comments";
 
   ///store
-  static String allProduct = "$baseUrl/api/v1/products";
-  static String productCategories =
-      "$baseUrl/api/v1/product-domain/product-categories";
-  static String productDomainProducts =
-      "$baseUrl/api/v1/product-domain/products";
-  static String productDomainCart =
-      "$baseUrl/api/v1/product-domain/product-carts";
-  static String productTopCategories = "$baseUrl/api/v1/product-top-categories";
-  static String productDetails = "$baseUrl/api/v1/products/";
+  static String allProduct = "$kireiBaseUrl/gigalogy/items/search";
+  static String productCategories = "$kireiBaseUrl/all-categories";
+  static String productDomainProducts = "$kireiBaseUrl/gigalogy/items/search";
+  static String productDomainCart = "$kireiBaseUrl/carts";
+  static String productTopCategories = "$kireiBaseUrl/home-featured-categories";
+  static String productDetails = "$kireiBaseUrl/products/details/";
   static String storeComment = "$baseUrl/api/v1/product-reviews";
   static String purchaseWithMembership = "$baseUrl/api/v1/product-subscribe/";
 

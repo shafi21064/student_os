@@ -48,7 +48,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
   Future<void> _loadProduct() async {
     setState(() => _loadingProduct = true);
     final response = await ApiClient.instance.get<Map<String, dynamic>>(
-      '${Api.productDomainProducts}/${widget.id}',
+      '${Api.productDetails}${widget.id}',
     );
     final body = response.data;
     if (!mounted) return;
@@ -368,29 +368,62 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
   }
 
   CatalogItem _productFrom(Map<String, dynamic> data) {
-    final title = data['title']?.toString() ?? '';
+    final title = data['name']?.toString() ?? data['title']?.toString() ?? '';
     final price = _asInt(data['sale_price']) ?? _asInt(data['price']) ?? 0;
     final originalPrice = _asInt(data['price']);
     final discount = _asInt(data['discount']) ?? 0;
-    final categories = _stringsFrom(data['categories_title_arr']);
-    final images = _stringsFrom(data['large_images_arr']);
+    final categories = _namesFrom(
+      data['product_categories'] ?? data['categories_title_arr'],
+    );
+    final image = _firstImage(data);
     return CatalogItem(
       id: data['id']?.toString() ?? data['slug']?.toString() ?? title,
       slug: data['slug']?.toString(),
       title: title,
-      subtitle: categories.isEmpty ? 'Product' : categories.first.toString(),
+      subtitle: categories.isEmpty ? 'Product' : categories.first,
       emoji: '🛍️',
-      imageUrl: images.firstOrNull ?? data['small_image']?.toString(),
+      imageUrl: image,
       price: _money(price),
       originalPrice: discount > 0 && originalPrice != null
           ? _money(originalPrice)
           : null,
       badge: discount > 0 ? '$discount% OFF' : null,
-      rating: _asDouble(data['rating']),
-      category: categories.isEmpty ? 'All' : categories.first.toString(),
-      description: _stripHtml(data['description']?.toString() ?? ''),
+      rating: _asDouble(data['ratings'] ?? data['rating']),
+      category: categories.isEmpty ? 'All' : categories.first,
+      description: _stripHtml(
+        data['description']?.toString() ??
+            data['short_description']?.toString() ??
+            '',
+      ),
       background: AppColors.purpleSoft,
     );
+  }
+
+  List<String> _namesFrom(Object? source) {
+    if (source is! List) return const <String>[];
+    return source
+        .map((item) => item is Map ? item['name'] ?? item['title'] : item)
+        .map((item) => item?.toString().trim() ?? '')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String? _firstImage(Map<String, dynamic> item) {
+    for (final key in <String>[
+      'large_pictures',
+      'pictures',
+      'small_pictures',
+    ]) {
+      final images = item[key];
+      if (images is List) {
+        for (final image in images) {
+          if (image is Map && image['url']?.toString().isNotEmpty == true) {
+            return image['url'].toString();
+          }
+        }
+      }
+    }
+    return item['small_image']?.toString() ?? item['thumbnail']?.toString();
   }
 
   List<String> _stringsFrom(Object? source) {

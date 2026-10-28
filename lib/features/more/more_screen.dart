@@ -10,6 +10,7 @@ class MoreScreen extends StatelessWidget {
     _ServiceItem(AppStrings.budgetPlanner, '💰', '/budget'),
     _ServiceItem(AppStrings.taskPlanner, '📝', '/tasks'),
     _ServiceItem(AppStrings.studentDeals, '🎟️', '/shop', tab: true),
+    _ServiceItem('Order History', '📦', '/orders'),
     _ServiceItem(AppStrings.careerHub, '💼', '/career', tab: true),
     _ServiceItem(AppStrings.foodDeals, '🍕', '/food', tab: true),
     _ServiceItem(AppStrings.marketplace, '🛍️', '/marketplace'),
